@@ -1,0 +1,24 @@
+{% macro link(href, text) -%}
+<a href="{{ href }}" class="inline-block text-green-700 hover:text-green-800 dark:text-green-500 dark:hover:text-green-700 hover:underline">{{ text }}</a>
+{%- endmacro %}
+
+{% macro header_item(href, text) -%}
+<a href="{{ href }}" class="hover:text-green-800 dark:hover:text-green-700 hover:underline mx-2">{{ text }}</a>
+{%- endmacro %}
+
+{% macro footer_item(href, text) -%}
+<a href="{{ href }}" class="hover:text-green-800 dark:hover:text-green-700 hover:underline text-sm mx-4">{{ text }}</a>
+{%- endmacro %}
+
+
+{% macro button(typ, text) -%}
+<button type="{{ typ }}" class="block bg-green-700 text-green-100 hover:bg-green-900 dark:bg-green-500 dark:text-green-900 dark:hover:bg-green-700 dark:hover:text-green-300 transition-colors duration-75 mx-auto px-2 py-1 w-1/2">{{ text }}</label>
+{%- endmacro %}
+
+{% macro label(id, text) -%}
+<label for="{{ id }}" class="block text-sm mb-2">{{ text }}</label>
+{%- endmacro %}
+
+{% macro input(id, typ) -%}
+<input id="{{ id }}" name="{{ id }}"" type="{{ typ }}" class="block px-2 py-1 w-full bg-zinc-100 dark:bg-zinc-900 outline-none outline-2 focus:outline-green-500">
+{%- endmacro %}

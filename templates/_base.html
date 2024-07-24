@@ -1,0 +1,38 @@
+{%- import "_macros.html" as macros -%}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} | Pod-Sync</title>
+    <style>{{ base.css|safe }}</style>
+</head>
+
+<body class="bg-zinc-200 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100 font-mono">
+
+    <header class="mx-auto my-2 max-w-4xl flex">
+        <a href="/" ><h1 class="text-green-700 hover:text-green-800 dark:text-green-500 dark:hover:text-green-700 hover:underline font-bold mx-2">Pod-Sync</h1></a>
+        <div class="flex-grow"></div>
+        {% if base.session.is_some() -%}
+        {% let session = base.session.as_ref().unwrap() -%}
+        {% call macros::header_item("/user/{}"|format(session.user.id), session.user.username) %}
+        {% else -%}
+        {% call macros::header_item("/login", "Login") %}
+        {% call macros::header_item("/register", "Register") %}
+        {% endif -%}
+    </header>
+
+    {% block wrapper %}{% endblock %}
+
+    <footer class="mx-auto my-2 max-w-4xl flex justify-center">
+        {% call macros::footer_item("...", "Contact") %}
+        {% call macros::footer_item("...", "Source Code") %}
+        {% call macros::footer_item("...", "Privacy Policy") %}
+        {% call macros::footer_item("...", "Terms of Use") %}
+    </footer>
+
+</body>
+
+</html>

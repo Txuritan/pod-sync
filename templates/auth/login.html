@@ -1,0 +1,25 @@
+{%- import "../_macros.html" as macros -%}
+
+{% extends "../_base_small.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block main %}
+<form action="/login" method="post">
+    <div class="mb-4">
+        {% call macros::label("email", "Email") %}
+        {% call macros::input("email", "email") %}
+    </div>
+    <div class="mb-4">
+        {% call macros::label("password", "Password") %}
+        {% call macros::input("password", "password") %}
+    </div>
+    <div class="flex">
+        <!-- <input type="checkbox" name="remember_me" id="remember_me" class="text-green-500 mb-2 mr-2"> -->
+        <!-- {% call macros::label("remember_me", "Remember Me") %} -->
+        <div class="flex-grow"></div>
+        <span class="text-sm">{% call macros::link("/register", "Create Account") %}</span>
+    </div>
+    {% call macros::button("submit", "Login") %}
+</form>
+{% endblock %}

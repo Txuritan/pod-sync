@@ -1,0 +1,23 @@
+{%- import "../_macros.html" as macros -%}
+
+{% extends "../_base_small.html" %}
+
+{% block title %}Register{% endblock %}
+
+{% block main %}
+<form action="/register" method="post">
+    <div class="mb-4">
+        {% call macros::label("username", "Username") %}
+        {% call macros::input("username", "text") %}
+    </div>
+    <div class="mb-4">
+        {% call macros::label("email", "Email") %}
+        {% call macros::input("email", "email") %}
+    </div>
+    <div class="mb-4">
+        {% call macros::label("password", "Password") %}
+        {% call macros::input("password", "password") %}
+    </div>
+    {% call macros::button("submit", "Register") %}
+</form>
+{% endblock %}

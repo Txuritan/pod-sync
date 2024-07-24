@@ -1,0 +1,16 @@
+[package]
+name = "autometrics-macros"
+version = "1.0.2"
+edition = "2021"
+
+workspace = "../.."
+
+[lib]
+proc-macro = true
+
+[dependencies]
+percent-encoding = "=2.3.1"
+proc-macro2 = "=1.0.86"
+quote = "=1.0.36"
+regex = "=1.10.5"
+syn =  { version = "=2.0.72", features = ["full"] }

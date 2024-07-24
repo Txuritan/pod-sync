@@ -1,0 +1,34 @@
+[package]
+name = "autometrics"
+version = "1.0.2"
+edition = "2021"
+readme = "README.md"
+
+workspace = "../.."
+
+[features]
+# Custom objectives
+custom-objective-percentile = []
+custom-objective-latency = []
+
+[dependencies]
+autometrics-macros = { path = "../autometrics-macros" }
+linkme = "=0.3.27"
+once_cell = "=1.19.0"
+spez = "=0.1.2"
+thiserror = "=1.0.63"
+
+# Use for metrics feature
+metrics = { version = "=0.23.0", default-features = false }
+
+[dev-dependencies]
+vergen = "=9.0.0"
+vergen-git2 = "=1.0.0"
+vergen-gitcl = "=1.0.0"
+
+[build-dependencies]
+cfg_aliases = "=0.2.1"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
