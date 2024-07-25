@@ -74,7 +74,9 @@ impl Database {
 
         sqlx::migrate!("./migrations").run(&pool).await?;
 
-        sqlx::query!("PRAGMA foreign_keys = ON;").execute(&pool).await?;
+        sqlx::query!("PRAGMA foreign_keys = ON;")
+            .execute(&pool)
+            .await?;
 
         Ok(Self { pool })
     }
