@@ -3,9 +3,10 @@ mod user;
 
 use axum::{
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
 };
 use axum_extra::response::{Css, Html};
+use tower_helmet::HelmetLayer;
 
 use crate::{
     error::{Error, Result},
@@ -47,8 +48,12 @@ pub fn app() -> axum::Router<crate::Sync> {
         .route("/register", get(auth::get_register).post(auth::post_register))
         .route("/login", get(auth::get_login).post(auth::post_login))
         .route("/logout", get(auth::get_logout))
-        .route("/user/:id", get(user::account))
-        .route("/user/:id/devices", get(user::devices))
+        .route("/user/:username", get(user::account))
+        .route("/user/:username/devices", post(user::device_add))
+        .route("/user/:username/devices/:device_id", post(user::device_remove))
+        .layer((
+            HelmetLayer::with_defaults(),
+        ))
 }
 
 async fn get_style() -> Result<Response> {

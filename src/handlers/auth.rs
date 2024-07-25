@@ -54,3 +54,6 @@ pub async fn logout(jar: PrivateCookieJar) -> Result<Response> {
 
     Ok((StatusCode::OK, jar.remove(session)).into_response())
 }
+
+#[cfg(test)]
+mod tests {}

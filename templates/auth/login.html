@@ -7,8 +7,8 @@
 {% block main %}
 <form action="/login" method="post">
     <div class="mb-4">
-        {% call macros::label("email", "Email") %}
-        {% call macros::input("email", "email") %}
+        {% call macros::label("username", "Username") %}
+        {% call macros::input("username", "username") %}
     </div>
     <div class="mb-4">
         {% call macros::label("password", "Password") %}
@@ -17,6 +17,7 @@
     <div class="flex">
         <!-- <input type="checkbox" name="remember_me" id="remember_me" class="text-green-500 mb-2 mr-2"> -->
         <!-- {% call macros::label("remember_me", "Remember Me") %} -->
+        <span class="text-sm">{% call macros::link("/recover", "Forgot Password?") %}</span>
         <div class="flex-grow"></div>
         <span class="text-sm">{% call macros::link("/register", "Create Account") %}</span>
     </div>

@@ -1,6 +1,6 @@
 use axum::{
     extract::State,
-    http::{header, StatusCode},
+    http::StatusCode,
     response::{IntoResponse as _, Redirect, Response},
     Form,
 };
@@ -28,6 +28,7 @@ impl Register {
     }
 }
 
+#[tracing::instrument(skip_all, err)]
 #[autometrics::autometrics]
 pub async fn get_register(
     MaybeAuthenticated(session): MaybeAuthenticated,
@@ -46,6 +47,7 @@ pub struct RegisterForm {
     password: String,
 }
 
+#[tracing::instrument(skip_all, err)]
 #[autometrics::autometrics]
 pub async fn post_register(
     MaybeAuthenticated(session): MaybeAuthenticated,
@@ -96,6 +98,7 @@ impl Login {
     }
 }
 
+#[tracing::instrument(skip_all, err)]
 #[autometrics::autometrics]
 pub async fn get_login(
     MaybeAuthenticated(session): MaybeAuthenticated,
@@ -112,6 +115,7 @@ pub struct LoginForm {
     password: String,
 }
 
+#[tracing::instrument(skip_all, err)]
 #[autometrics::autometrics]
 pub async fn post_login(
     jar: PrivateCookieJar,
@@ -120,7 +124,6 @@ pub async fn post_login(
     Form(form): Form<LoginForm>,
 ) -> Result<Response> {
     if let Err(errors) = form.validate() {
-        tracing::error!("{}", errors);
         return Ok((
             StatusCode::BAD_REQUEST,
             Template(Login::new(session, Some(errors))),
@@ -138,10 +141,11 @@ pub async fn post_login(
     Ok((jar.add(cookie), Redirect::to("/")).into_response())
 }
 
+#[tracing::instrument(skip_all, err)]
 #[autometrics::autometrics]
 pub async fn get_logout(jar: PrivateCookieJar) -> Result<Response> {
     let Some(session) = jar.get(SESSION) else {
-        return Ok((StatusCode::TEMPORARY_REDIRECT, [(header::LOCATION, "/")]).into_response());
+        return Ok(Redirect::to("/").into_response());
     };
 
     Ok((jar.remove(session), Redirect::to("/")).into_response())

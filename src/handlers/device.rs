@@ -5,70 +5,7 @@ use axum::{
     Json,
 };
 
-use crate::{
-    database::{Database, User},
-    error::{Error, Result},
-    extractor::auth::RequireAuthentication,
-    Sync,
-};
-
-#[derive(Clone, serde::Serialize)]
-pub struct Device {
-    pub id: i64,
-    pub caption: String,
-    #[serde(rename = "type")]
-    pub typ: DeviceType,
-    pub subscriptions: i32,
-}
-
-#[derive(Clone, serde::Deserialize)]
-pub struct DeviceUpdate {
-    pub caption: Option<String>,
-    #[serde(rename = "type")]
-    pub typ: Option<DeviceType>,
-}
-
-#[derive(Clone, Default, serde::Deserialize, serde::Serialize, sqlx::Type)]
-#[repr(i32)]
-#[serde(rename_all = "lowercase")]
-pub enum DeviceType {
-    Desktop,
-    Laptop,
-    Mobile,
-    Server,
-    #[default]
-    Other,
-}
-
-impl Database {
-    #[tracing::instrument(skip_all, err)]
-    #[autometrics::autometrics]
-    pub async fn get_devices(&self, user: &User) -> Result<Vec<Device>> {
-        sqlx::query_as!(Device, "SELECT id, type as 'typ: DeviceType', caption, 0 as subscriptions FROM devices WHERE user_id = ?", user.id)
-            .fetch_all(&self.pool())
-            .await
-            .map_err(Error::from)
-    }
-
-    #[tracing::instrument(skip_all, err)]
-    #[autometrics::autometrics]
-    pub async fn update_device(
-        &self,
-        user: &User,
-        name: &str,
-        update: DeviceUpdate,
-    ) -> Result<i64> {
-        struct Wrapper {
-            id: i64,
-        }
-
-        sqlx::query_as!(Wrapper, "INSERT INTO devices (user_id, name, type, caption) VALUES (?, ?, ?, ?) ON CONFLICT(user_id, name) DO UPDATE SET user_id=excluded.user_id,name=excluded.name,type=excluded.type,caption=excluded.caption RETURNING id", user.id, name, update.typ, update.caption)
-            .fetch_one(&self.pool())
-            .await
-            .map(|w| w.id)
-            .map_err(Error::from)
-    }
-}
+use crate::{database::DeviceUpdate, error::Result, extractor::auth::RequireAuthentication, Sync};
 
 /// # Update Device Data
 ///
@@ -106,7 +43,7 @@ impl Database {
 pub async fn update(
     RequireAuthentication(session): RequireAuthentication,
     State(sync): State<Sync>,
-    Path((username, device_id)): Path<(String, String)>,
+    Path((username, device_name)): Path<(String, String)>,
     Json(update): Json<DeviceUpdate>,
 ) -> Result<Response> {
     if session.user.username != username {
@@ -114,7 +51,7 @@ pub async fn update(
     }
 
     sync.db
-        .update_device(&session.user, &device_id, update)
+        .update_device(&session.user, &device_name, update)
         .await?;
 
     Ok(StatusCode::OK.into_response())
@@ -236,7 +173,7 @@ pub async fn list(
 pub async fn updates(
     RequireAuthentication(_session): RequireAuthentication,
     State(_sync): State<Sync>,
-    Path((_username, _device_id)): Path<(String, String)>,
+    Path((_username, _device_name)): Path<(String, String)>,
 ) -> Result<Response> {
     return Ok(StatusCode::NOT_FOUND.into_response());
     // if session.user.username != username {
@@ -245,3 +182,6 @@ pub async fn updates(
 
     // todo!()
 }
+
+#[cfg(test)]
+mod tests {}

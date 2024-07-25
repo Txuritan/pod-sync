@@ -20,13 +20,13 @@ pub fn app() -> axum::Router<crate::Sync> {
         // directory
         // suggestions
         // device
-        .route("/api/2/devices/:username/:device_id/.json", post(device::update))
+        .route("/api/2/devices/:username/:device_name/.json", post(device::update))
         .route("/api/2/devices/:username/.json", get(device::list))
-        .route("/api/2/updates/:username/:device_id/.json", get(device::updates))
+        .route("/api/2/updates/:username/:device_name/.json", get(device::updates))
         // subscriptions
-        .route("/subscriptions/:username/:device_id/.json", get(subscriptions::get_of_device).put(subscriptions::upload_of_device))
+        .route("/subscriptions/:username/:device_name/.json", get(subscriptions::get_of_device).put(subscriptions::upload_of_device))
         .route("/subscriptions/:username/.json", get(subscriptions::get_all))
-        .route("/api/2/subscriptions/:username/:device_id/.json", get(subscriptions::get_changes).post(subscriptions::upload_changes))
+        .route("/api/2/subscriptions/:username/:device_name/.json", get(subscriptions::get_changes).post(subscriptions::upload_changes))
     // episode
         // r.Get("/api/2/episodes/{username}.{format}", episodeAPI.HandleEpisodeAction)
         // r.Post("/api/2/episodes/{username}.{format}", episodeAPI.HandleUploadEpisodeAction)

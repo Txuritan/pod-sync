@@ -18,7 +18,6 @@ use axum_prometheus::PrometheusMetricLayer;
 use metrics_exporter_prometheus::PrometheusHandle;
 use tokio::net::TcpListener;
 use tower::Layer as _;
-use tower_helmet::HelmetLayer;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 use tracing_subscriber::prelude::*;
 
@@ -76,10 +75,9 @@ async fn start_public_server(
     let app = Router::new()
         .merge(handlers::app())
         .merge(web::app())
-        .with_state(state)
+        .with_state(state.clone())
         .layer((
             prometheus_layer,
-            HelmetLayer::with_defaults(), // TODO: disable csp on api
             TraceLayer::new_for_http(),
             TimeoutLayer::new(Duration::from_secs(10)),
         ));
@@ -90,6 +88,8 @@ async fn start_public_server(
     axum::serve(listener, app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await?;
+
+    state.db.shutdown().await;
 
     Ok(())
 }
@@ -151,7 +151,11 @@ fn rewrite_request_uri<B>(req: Request<B>) -> Request<B> {
         }
 
         if let Some(query) = paq.query() {
-            uri.path_and_query = Some(format!("{}?{}", path, query).parse().expect("failed to parse path and query"));
+            uri.path_and_query = Some(
+                format!("{}?{}", path, query)
+                    .parse()
+                    .expect("failed to parse path and query"),
+            );
         } else {
             uri.path_and_query = Some(path.parse().expect("failed to parse path and query"));
         }

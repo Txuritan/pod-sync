@@ -2,6 +2,43 @@
 
 {% extends "../_base_large.html" %}
 
-{% block title %}{{ user.username }}{% endblock %}
+{% block title %}{{ base.session.as_ref().unwrap().user.username }}{% endblock %}
 
-{% block main %}{% endblock %}
+{% block main %}
+<h2 class="text-2xl">Devices</h2>
+
+{% for device in devices %}
+<form action="/user/{{ base.session.as_ref().unwrap().user.username }}/devices/{{ device.id }}" method="post">
+    <div class="flex flex-col">
+        <b>{{ device.id }}</b>
+        <p class="text-sm">{{ device.typ }}</p>
+        <p>{{ device.caption }}</p>
+        <div class="flex-grow"></div>
+        {% call macros::button("submit", "Remove") %}
+    </div>
+</form>
+{% endfor %}
+
+<h3 class="text-lg">Add Device</h3>
+<form action="/user/{{ base.session.as_ref().unwrap().user.username }}/devices" method="post">
+    <div class="mb-4">
+        {% call macros::label("name", "Name") %}
+        {% call macros::input("name", "name") %}
+    </div>
+    <div class="mb-4">
+        {% call macros::label("caption", "Caption") %}
+        {% call macros::input("caption", "caption") %}
+    </div>
+    <div class="mb-4">
+        {% call macros::label("type", "Type") %}
+        {% call macros::input("type", "type") %}
+    </div>
+    {% call macros::button("submit", "Add Device") %}
+</form>
+
+{% call macros::hr() %}
+
+<form action="/logout" method="get">
+    {% call macros::button("submit", "Logout") %}
+</form>
+{% endblock %}

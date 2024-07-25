@@ -1,5 +1,5 @@
 /node_modules
 /target
 
-pod-sync.db
+pod-sync.db*
 pod-sync.toml

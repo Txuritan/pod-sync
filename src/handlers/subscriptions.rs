@@ -1,31 +1,21 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse as _, Response},
     Json,
 };
 use time::OffsetDateTime;
 
-use crate::{database::Database, error::Result, extractor::auth::RequireAuthentication, Sync};
-
-#[derive(Debug, serde::Deserialize)]
-pub struct ChangesRequest {
-    pub add: Vec<String>,
-    pub remove: Vec<String>,
-}
-
-#[derive(Debug, serde::Serialize)]
-pub struct ChangesResponse {
-    pub add: Vec<String>,
-    pub remove: Vec<String>,
-    pub timestamp: OffsetDateTime,
-}
-
-impl Database {}
+use crate::{
+    database::{ChangesQuery, ChangesRequest, ChangesResponse},
+    error::Result,
+    extractor::auth::RequireAuthentication,
+    Sync,
+};
 
 pub async fn get_all(
     RequireAuthentication(session): RequireAuthentication,
-    State(state): State<Sync>,
+    State(sync): State<Sync>,
     Path(username): Path<String>,
 ) -> Result<Response> {
     if session.user.username != username {
@@ -37,8 +27,8 @@ pub async fn get_all(
 
 pub async fn get_of_device(
     RequireAuthentication(session): RequireAuthentication,
-    State(state): State<Sync>,
-    Path((username, device_id)): Path<(String, String)>,
+    State(sync): State<Sync>,
+    Path((username, device_name)): Path<(String, String)>,
 ) -> Result<Response> {
     if session.user.username != username {
         return Ok(StatusCode::UNAUTHORIZED.into_response());
@@ -49,8 +39,8 @@ pub async fn get_of_device(
 
 pub async fn upload_of_device(
     RequireAuthentication(session): RequireAuthentication,
-    State(state): State<Sync>,
-    Path((username, device_id)): Path<(String, String)>,
+    State(sync): State<Sync>,
+    Path((username, device_name)): Path<(String, String)>,
     Json(changes): Json<ChangesRequest>,
 ) -> Result<Response> {
     if session.user.username != username {
@@ -99,16 +89,41 @@ pub async fn upload_of_device(
 ///    "timestamp": 12347
 /// }
 /// ```
+#[tracing::instrument(skip_all, err)]
+#[autometrics::autometrics]
 pub async fn get_changes(
     RequireAuthentication(session): RequireAuthentication,
-    State(state): State<Sync>,
-    Path((username, device_id)): Path<(String, String)>,
+    State(sync): State<Sync>,
+    Path((username, device_name)): Path<(String, String)>,
+    Query(query): Query<ChangesQuery>,
 ) -> Result<Response> {
     if session.user.username != username {
         return Ok(StatusCode::UNAUTHORIZED.into_response());
     }
 
-    todo!()
+    let Some(device_id) = sync.db.get_device_id(&session.user, &device_name).await? else {
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
+
+    let mut changes = ChangesResponse {
+        add: vec![],
+        remove: vec![],
+        timestamp: OffsetDateTime::now_utc().unix_timestamp(),
+    };
+
+    let subscriptions = sync
+        .db
+        .subscription_history(&session.user, device_id, query.since)
+        .await?;
+    for subscription in subscriptions {
+        match subscription.action.as_str() {
+            "subscribe" => changes.add.push(subscription.podcast),
+            "unsubscribe" => changes.remove.push(subscription.podcast),
+            _ => {}
+        }
+    }
+
+    Ok((StatusCode::OK, Json(changes)).into_response())
 }
 
 /// # Upload Subscription Changes
@@ -130,7 +145,7 @@ pub async fn get_changes(
 /// should stay the same and therefore the client can simply update the URL
 /// value locally and use it for future updates.
 ///
-/// URLs that are not allowed (currently all URLs that don’t start with either
+/// URLs that are not allowed (currently all URLs that don't start with either
 /// http or https) are rewritten to the empty string and are ignored by the
 /// Web-service.
 ///
@@ -170,15 +185,29 @@ pub async fn get_changes(
 ///     ]
 /// }
 /// ```
+#[tracing::instrument(skip_all, err)]
+#[autometrics::autometrics]
 pub async fn upload_changes(
     RequireAuthentication(session): RequireAuthentication,
-    State(state): State<Sync>,
-    Path((username, device_id)): Path<(String, String)>,
+    State(sync): State<Sync>,
+    Path((username, device_name)): Path<(String, String)>,
     Json(changes): Json<ChangesRequest>,
 ) -> Result<Response> {
     if session.user.username != username {
         return Ok(StatusCode::UNAUTHORIZED.into_response());
     }
 
-    todo!()
+    let Some(device_id) = sync.db.get_device_id(&session.user, &device_name).await? else {
+        return Ok(StatusCode::BAD_REQUEST.into_response());
+    };
+
+    let updated = sync
+        .db
+        .add_subscriptions(&session.user, device_id, changes)
+        .await?;
+
+    Ok((StatusCode::OK, Json(updated)).into_response())
 }
+
+#[cfg(test)]
+mod tests {}

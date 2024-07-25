@@ -17,11 +17,11 @@
         <div class="flex-grow"></div>
         {% if base.session.is_some() -%}
         {% let session = base.session.as_ref().unwrap() -%}
-        {% call macros::header_item("/user/{}"|format(session.user.id), session.user.username) %}
-        {% else -%}
+        {% call macros::header_item("/user/{}"|format(session.user.username), session.user.username) %}
+        {%- else -%}
         {% call macros::header_item("/login", "Login") %}
         {% call macros::header_item("/register", "Register") %}
-        {% endif -%}
+        {%- endif %}
     </header>
 
     {% block wrapper %}{% endblock %}

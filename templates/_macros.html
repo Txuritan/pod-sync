@@ -12,7 +12,7 @@
 
 
 {% macro button(typ, text) -%}
-<button type="{{ typ }}" class="block bg-green-700 text-green-100 hover:bg-green-900 dark:bg-green-500 dark:text-green-900 dark:hover:bg-green-700 dark:hover:text-green-300 transition-colors duration-75 mx-auto px-2 py-1 w-1/2">{{ text }}</label>
+<button type="{{ typ }}" class="block bg-green-700 text-green-100 hover:bg-green-900 dark:bg-green-500 dark:text-green-900 dark:hover:bg-green-700 dark:hover:text-green-300 transition-colors duration-75 mx-auto px-2 py-1 w-1/2">{{ text }}</button>
 {%- endmacro %}
 
 {% macro label(id, text) -%}
@@ -20,5 +20,10 @@
 {%- endmacro %}
 
 {% macro input(id, typ) -%}
-<input id="{{ id }}" name="{{ id }}"" type="{{ typ }}" class="block px-2 py-1 w-full bg-zinc-100 dark:bg-zinc-900 outline-none outline-2 focus:outline-green-500">
+<input id="{{ id }}" name="{{ id }}" type="{{ typ }}" class="block px-2 py-1 w-full bg-zinc-100 dark:bg-zinc-900 outline-none outline-2 focus:outline-green-500">
+{%- endmacro %}
+
+
+{% macro hr() -%}
+<hr class="h-1 mx-auto my-4  border-0 rounded md:my-4 bg-zinc-200 dark:bg-zinc-900">
 {%- endmacro %}
