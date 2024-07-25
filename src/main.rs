@@ -1,6 +1,7 @@
 mod extractor;
 mod handlers;
 mod models;
+mod tasks;
 mod web;
 
 mod config;
@@ -22,7 +23,7 @@ use tower::Layer as _;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 use tracing_subscriber::prelude::*;
 
-use crate::{config::Config, database::Database, error::Result};
+use crate::{config::Config, database::Database, error::Result, tasks::Task};
 
 #[derive(Clone)]
 struct Sync {
@@ -84,11 +85,17 @@ async fn start_public_server(
         ));
     let app = middleware.layer(app);
 
+    let deletion_handle = Task::spawn(tasks::deletion);
+    let identification_handle = Task::spawn(tasks::identification);
+
     let listener = TcpListener::bind(addr).await?;
 
     axum::serve(listener, app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await?;
+
+    deletion_handle.await.expect("async task panicked");
+    identification_handle.await.expect("async task panicked");
 
     state.db.shutdown().await?;
 

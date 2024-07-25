@@ -59,4 +59,5 @@ impl_from![
     std::io::Error,
     toml::de::Error,
     toml::ser::Error,
+    url::ParseError,
 ];

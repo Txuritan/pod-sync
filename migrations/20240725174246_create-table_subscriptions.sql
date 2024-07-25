@@ -1,8 +1,5 @@
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS subscriptions (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE, -- TODO: add index
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
     created TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
     updated TIMESTAMP,
     deleted TIMESTAMP

@@ -8,7 +8,7 @@ use axum_extra::TypedHeader;
 use headers::{authorization::Bearer, Authorization};
 use time::OffsetDateTime;
 
-use crate::database::User;
+use crate::database::user::User;
 
 #[derive(Debug, thiserror::Error)]
 pub enum SessionRejection {
@@ -58,7 +58,7 @@ impl FromRequestParts<crate::Sync> for Session {
 
         let Some(session) = state
             .db
-            .user_get_by_token(header.0.token())
+            .session_get_by_token(header.0.token())
             .await
             .map_err(|_| SessionRejection::Unauthorized)?
         else {

@@ -18,7 +18,22 @@ pub struct Subscriptions {
     pub total: i64,
     pub page: i64,
     pub per_page: i64,
+    pub next: Option<Url>,
+    pub previous: Option<Url>,
     pub subscriptions: Vec<Subscription>,
+}
+
+impl Subscriptions {
+    pub fn empty() -> Self {
+        Self {
+            total: 0,
+            page: 1,
+            per_page: 0,
+            next: None,
+            previous: None,
+            subscriptions: vec![],
+        }
+    }
 }
 
 #[derive(serde::Serialize)]

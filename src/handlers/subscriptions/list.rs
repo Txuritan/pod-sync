@@ -30,7 +30,34 @@ pub async fn list(
         return Either2::E2(Unauthorized);
     }
 
-    todo!()
+    let ListParams {
+        since,
+        page,
+        per_page,
+    } = params;
+
+    let subscriptions = match since {
+        Some(since) => {
+            sync.db
+                .subscriptions_get_all_since(&session.user, since, page, per_page)
+                .await
+        }
+        None => {
+            sync.db
+                .subscriptions_get_all(&session.user, page, per_page)
+                .await
+        }
+    };
+
+    match subscriptions {
+        Ok(Some(subscriptions)) => Either2::E1(Json(subscriptions)),
+        Ok(None) => Either2::E1(Json(Subscriptions::empty())),
+        Err(err) => {
+            tracing::error!(err = %err, "failed to retrieve user subscriptions");
+
+            Either2::E1(Json(Subscriptions::empty()))
+        }
+    }
 }
 
 #[cfg(test)]
