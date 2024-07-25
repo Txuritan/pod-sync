@@ -4,15 +4,20 @@ use axum::{
     response::{IntoResponse as _, Redirect, Response},
     Form,
 };
-use axum_extra::extract::PrivateCookieJar;
+use axum_extra::extract::{
+    cookie::{Cookie, SameSite},
+    PrivateCookieJar,
+};
 use validator::{Validate as _, ValidationErrors};
 
 use crate::{
     error::Result,
-    extractor::auth::{MaybeAuthenticated, Session, SESSION},
+    extractor::auth::Session,
     web::{Base, Template},
     Sync,
 };
+
+pub static SESSION: &str = "pod-sync-session";
 
 #[derive(askama::Template)]
 #[template(path = "auth/register.html")]
@@ -30,10 +35,7 @@ impl Register {
 
 #[tracing::instrument(skip_all, err)]
 #[autometrics::autometrics]
-pub async fn get_register(
-    MaybeAuthenticated(session): MaybeAuthenticated,
-    State(_sync): State<Sync>,
-) -> Result<Response> {
+pub async fn get_register(session: Option<Session>, State(_sync): State<Sync>) -> Result<Response> {
     Ok(Template(Register::new(session, None)).into_response())
 }
 
@@ -50,7 +52,7 @@ pub struct RegisterForm {
 #[tracing::instrument(skip_all, err)]
 #[autometrics::autometrics]
 pub async fn post_register(
-    MaybeAuthenticated(session): MaybeAuthenticated,
+    session: Option<Session>,
     State(sync): State<Sync>,
     Form(form): Form<RegisterForm>,
 ) -> Result<Response> {
@@ -100,10 +102,7 @@ impl Login {
 
 #[tracing::instrument(skip_all, err)]
 #[autometrics::autometrics]
-pub async fn get_login(
-    MaybeAuthenticated(session): MaybeAuthenticated,
-    State(_sync): State<Sync>,
-) -> Result<Response> {
+pub async fn get_login(session: Option<Session>, State(_sync): State<Sync>) -> Result<Response> {
     Ok(Template(Login::new(session, None)).into_response())
 }
 
@@ -119,7 +118,7 @@ pub struct LoginForm {
 #[autometrics::autometrics]
 pub async fn post_login(
     jar: PrivateCookieJar,
-    MaybeAuthenticated(session): MaybeAuthenticated,
+    session: Option<Session>,
     State(sync): State<Sync>,
     Form(form): Form<LoginForm>,
 ) -> Result<Response> {
@@ -136,7 +135,13 @@ pub async fn post_login(
         return Ok((StatusCode::BAD_REQUEST, Template(Login::new(session, None))).into_response());
     };
 
-    let cookie = sync.db.user_login(&user).await?;
+    let (token, expires) = sync.db.session_crate(&user).await?;
+
+    let mut cookie = Cookie::new(SESSION, token);
+    cookie.set_http_only(true);
+    cookie.set_path("/");
+    cookie.set_same_site(SameSite::Strict);
+    cookie.set_expires(expires);
 
     Ok((jar.add(cookie), Redirect::to("/")).into_response())
 }

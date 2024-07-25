@@ -1,8 +1,0 @@
-CREATE TABLE IF NOT EXISTS devices (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    caption TEXT NOT NULL,
-    type TEXT NOT NULL,
-    UNIQUE(user_id, name)
-);

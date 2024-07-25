@@ -3,14 +3,14 @@ mod user;
 
 use axum::{
     response::{IntoResponse, Response},
-    routing::{get, post},
+    routing::get,
 };
 use axum_extra::response::{Css, Html};
 use tower_helmet::HelmetLayer;
 
 use crate::{
     error::{Error, Result},
-    extractor::auth::{MaybeAuthenticated, Session},
+    extractor::auth::Session,
 };
 
 static STYLE: &str = include_str!("../../public/style.css");
@@ -49,8 +49,6 @@ pub fn app() -> axum::Router<crate::Sync> {
         .route("/login", get(auth::get_login).post(auth::post_login))
         .route("/logout", get(auth::get_logout))
         .route("/user/:username", get(user::account))
-        .route("/user/:username/devices", post(user::device_add))
-        .route("/user/:username/devices/:device_id", post(user::device_remove))
         .layer((
             HelmetLayer::with_defaults(),
         ))
@@ -74,6 +72,6 @@ impl Home {
     }
 }
 
-async fn get_index(MaybeAuthenticated(session): MaybeAuthenticated) -> Result<Response> {
+async fn get_index(session: Option<Session>) -> Result<Response> {
     Ok(Template(Home::new(session)).into_response())
 }

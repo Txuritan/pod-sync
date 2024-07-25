@@ -1,5 +1,6 @@
 mod extractor;
 mod handlers;
+mod models;
 mod web;
 
 mod config;
@@ -89,7 +90,7 @@ async fn start_public_server(
         .with_graceful_shutdown(shutdown_signal())
         .await?;
 
-    state.db.shutdown().await;
+    state.db.shutdown().await?;
 
     Ok(())
 }

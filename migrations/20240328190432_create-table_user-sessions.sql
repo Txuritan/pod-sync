@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS user_sessions (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     token TEXT NOT NULL,
-    expires INTEGER NOT NULL,
-    PRIMARY KEY (user_id, token)
+    expires TIMESTAMP NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users (id) ON UPDATE CASCADE ON DELETE CASCADE
 );

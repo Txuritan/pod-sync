@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL
+    password_hash TEXT NOT NULL,
+    created TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
+    updated TIMESTAMP NOT NULL DEFAULT (DATETIME('now'))
 );
