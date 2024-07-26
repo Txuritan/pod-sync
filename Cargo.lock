@@ -2030,6 +2030,7 @@ dependencies = [
  "lettre",
  "metrics",
  "metrics-exporter-prometheus",
+ "mime",
  "oxide-auth",
  "oxide-auth-axum",
  "pin-project-lite",

@@ -40,7 +40,7 @@ impl Session {
         let now = OffsetDateTime::now_utc();
         let expires = self.expires;
 
-        expires < now
+        now < expires
     }
 }
 

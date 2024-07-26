@@ -24,9 +24,11 @@ pub async fn list(
     Query(params): Query<ListParams>,
 ) -> Either2<Json<Subscriptions>, Unauthorized> {
     let Some(session) = session else {
+        tracing::info!("no session");
         return Either2::E2(Unauthorized);
     };
     if !session.validate() {
+        tracing::info!("session invalid");
         return Either2::E2(Unauthorized);
     }
 
@@ -61,4 +63,70 @@ pub async fn list(
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use std::sync::Arc;
+
+    use axum::{
+        body::Body,
+        http::{header, Method, Request, StatusCode},
+        routing::get,
+        Router,
+    };
+    use axum_extra::extract::cookie::Key;
+    use headers::{authorization::{Credentials as _, Bearer}, Authorization};
+    use tower::ServiceExt as _;
+
+    use crate::{
+        config::Config,
+        database::{Database, TestData},
+        error::Result,
+        handlers::test_app,
+        Sync,
+    };
+
+    async fn setup_app(args: TestData) -> Router {
+        test_app(args, |router| {
+            router.route("/v1/subscriptions", get(super::list))
+        })
+        .await
+        .expect("failed to setup app")
+    }
+
+    #[tokio::test]
+    async fn ok() {
+        tracing_subscriber::fmt().init();
+
+        let app = setup_app(TestData::UserData).await;
+
+        let request = Request::builder()
+            .method(Method::GET)
+            .header(
+                header::AUTHORIZATION,
+                Authorization::<Bearer>::bearer(Database::TEST_TOKEN).unwrap().0.encode(),
+            )
+            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .uri("/v1/subscriptions")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn unauthorized() {
+        let app = setup_app(TestData::UserData).await;
+
+        let request = Request::builder()
+            .method(Method::GET)
+            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+            .uri("/v1/subscriptions")
+            .body(Body::empty())
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+}

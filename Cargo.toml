@@ -45,6 +45,9 @@ vergen = "=9.0.0"
 vergen-git2 = "=1.0.0"
 vergen-gitcl = "=1.0.0"
 
+[dev-dependencies]
+mime = "=0.3.17"
+
 [workspace]
 resolver = "2"
 members = [

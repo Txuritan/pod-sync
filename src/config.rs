@@ -69,6 +69,16 @@ impl Config {
         Ok(config)
     }
 
+    #[cfg(test)]
+    pub fn load_test() -> Result<Self> {
+        Ok(Self {
+            public_address: default_public_address(),
+            private_address: default_private_address(),
+            cookie_key: "kt/ucnJy8CKBrldCeUF36mWGdVk3E6IN36YMs9EVyX8Jg3I3jhEqs3oWOErG00XNJy5UBgNWBZajiblFyt8nOA==".to_string(),
+            session_key: "rkEdTWIld9OiEFXsH7VpPkWMwnyaHCWe5zNZgjQ5w1+9vuIuDDT0IqJ1kEDkjQO6LnTi77RePn+zCPsUpqS31Q==".to_string(),
+        })
+    }
+
     pub fn cookie_key(&self) -> Result<Vec<u8>> {
         BASE64
             .decode(self.cookie_key.as_bytes())
