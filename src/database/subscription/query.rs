@@ -4,66 +4,20 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    database::{user::User, Database},
+    database::{
+        subscription::{
+            RowSubscriptionFeed, RowSubscriptionGuid, RowUserSubscription, SubscriptionId,
+            WrapperId,
+        },
+        user::User,
+        Database,
+    },
     models::subscriptions::{Subscription, Subscriptions},
 };
 
-#[derive(Clone, Copy, sqlx::Type)]
-#[sqlx(transparent)]
-pub struct SubscriptionId(i64);
-
-impl From<i64> for SubscriptionId {
-    fn from(value: i64) -> Self {
-        Self(value)
-    }
-}
-
-#[derive(Clone, Copy, sqlx::Type)]
-#[sqlx(transparent)]
-pub struct UserSubscriptionId(i64);
-
-impl From<i64> for UserSubscriptionId {
-    fn from(value: i64) -> Self {
-        Self(value)
-    }
-}
-
-pub struct RowSubscription {
-    pub id: SubscriptionId,
-    pub created: OffsetDateTime,
-    pub updated: Option<OffsetDateTime>,
-    pub deleted: Option<OffsetDateTime>,
-}
-
-pub struct RowUserSubscription {
-    pub user_id: i64,
-    pub subscription_id: SubscriptionId,
-    pub created: OffsetDateTime,
-    pub updated: Option<OffsetDateTime>,
-    pub deleted: Option<OffsetDateTime>,
-}
-
-pub struct RowSubscriptionFeed {
-    pub subscription_id: SubscriptionId,
-    pub feed: String, // TODO: switch this to a Url
-    pub created: OffsetDateTime,
-    pub updated: Option<OffsetDateTime>,
-    pub deleted: Option<OffsetDateTime>,
-}
-
-pub struct RowSubscriptionGuid {
-    pub subscription_id: SubscriptionId,
-    pub guid: Uuid,
-    pub created: OffsetDateTime,
-    pub updated: Option<OffsetDateTime>,
-    pub deleted: Option<OffsetDateTime>,
-}
-
-pub struct WrapperId {
-    pub id: SubscriptionId,
-}
-
 impl Database {
+    #[tracing::instrument(skip_all, err)]
+    #[autometrics::autometrics]
     async fn subscription_get_id_by_guid(
         &self,
         uuid: Uuid,
@@ -71,9 +25,12 @@ impl Database {
         sqlx::query_as!(
             RowSubscriptionGuid,
             r#"
-                SELECT subscription_id, guid as "guid: Uuid", created, updated, deleted
-                FROM subscription_guids
-                WHERE guid = ?1
+                SELECT
+                    subscription_id, guid as "guid: Uuid", created, updated, deleted
+                FROM
+                    subscription_guids
+                WHERE
+                    guid = ?1
             "#,
             uuid,
         )
@@ -83,7 +40,9 @@ impl Database {
         .context("Failed to run query: get subscriptions by guid")
     }
 
-    // TODO: add since support so we dont have to process as much
+    // TODO: add since support so we don't have to process as much
+    #[tracing::instrument(skip_all, err)]
+    #[autometrics::autometrics]
     async fn subscription_get_feeds(
         &self,
         id: SubscriptionId,
@@ -91,9 +50,12 @@ impl Database {
         sqlx::query_as!(
             RowSubscriptionFeed,
             r#"
-                SELECT subscription_id, feed, created, updated, deleted
-                FROM subscription_feeds
-                WHERE subscription_id = ?1
+                SELECT
+                    subscription_id, feed, created, updated, deleted
+                FROM
+                    subscription_feeds
+                WHERE
+                    subscription_id = ?1
             "#,
             id,
         )
@@ -103,7 +65,9 @@ impl Database {
         .context("Failed to run query: get subscriptions feeds")
     }
 
-    // TODO: add since support so we dont have to process as much
+    // TODO: add since support so we don't have to process as much
+    #[tracing::instrument(skip_all, err)]
+    #[autometrics::autometrics]
     async fn subscription_get_guids(
         &self,
         id: SubscriptionId,
@@ -111,9 +75,12 @@ impl Database {
         sqlx::query_as!(
             RowSubscriptionGuid,
             r#"
-                SELECT subscription_id, guid as "guid: Uuid", created, updated, deleted
-                FROM subscription_guids
-                WHERE subscription_id = ?1
+                SELECT
+                    subscription_id, guid as "guid: Uuid", created, updated, deleted
+                FROM
+                    subscription_guids
+                WHERE
+                    subscription_id = ?1
             "#,
             id,
         )
@@ -123,6 +90,8 @@ impl Database {
         .context("Failed to run query: get subscriptions guids")
     }
 
+    #[tracing::instrument(skip_all, err)]
+    #[autometrics::autometrics]
     async fn subscriptions_fill_all(
         &self,
         user: &User,
@@ -154,6 +123,8 @@ impl Database {
         }))
     }
 
+    #[tracing::instrument(skip_all, err)]
+    #[autometrics::autometrics]
     pub async fn subscriptions_get_all(
         &self,
         user: &User,
@@ -176,10 +147,13 @@ impl Database {
         let ids = sqlx::query_as!(
             WrapperId,
             r#"
-                SELECT s.id
-                FROM user_subscriptions us
+                SELECT
+                    s.id
+                FROM
+                    user_subscriptions us
                 LEFT JOIN subscriptions s ON us.subscription_id = s.id
-                WHERE us.user_id = ?1
+                WHERE
+                    us.user_id = ?1
                 ORDER BY us.created DESC
                 LIMIT ?2
                 OFFSET ?3
@@ -196,6 +170,8 @@ impl Database {
         self.subscriptions_fill_all(user, page, per_page, ids).await
     }
 
+    #[tracing::instrument(skip_all, err)]
+    #[autometrics::autometrics]
     pub async fn subscriptions_get_all_since(
         &self,
         user: &User,
@@ -219,10 +195,13 @@ impl Database {
         let ids = sqlx::query_as!(
             WrapperId,
             r#"
-                SELECT s.id
-                FROM user_subscriptions us
+                SELECT
+                    s.id
+                FROM
+                    user_subscriptions us
                 LEFT JOIN subscriptions s ON us.subscription_id = s.id
-                WHERE us.user_id = ?1 AND (us.created < ?4 OR us.updated < ?4 OR us.deleted < ?4)
+                WHERE
+                    us.user_id = ?1 AND (us.created < ?4 OR us.updated < ?4 OR us.deleted < ?4)
                 ORDER BY us.created DESC
                 LIMIT ?2
                 OFFSET ?3
@@ -240,6 +219,8 @@ impl Database {
         self.subscriptions_fill_all(user, page, per_page, ids).await
     }
 
+    #[tracing::instrument(skip_all, err)]
+    #[autometrics::autometrics]
     pub async fn subscription_get_by_id(
         &self,
         user: &User,
@@ -248,10 +229,13 @@ impl Database {
         let subscription = sqlx::query_as!(
             RowUserSubscription,
             r#"
-                SELECT us.user_id, us.subscription_id, us.created, us.updated, us.deleted
-                FROM user_subscriptions us
+                SELECT
+                    us.user_id, us.subscription_id, us.created, us.updated, us.deleted
+                FROM
+                    user_subscriptions us
                 LEFT JOIN subscriptions s ON us.subscription_id = s.id
-                WHERE us.user_id = ?1 AND us.subscription_id = ?2
+                WHERE
+                    us.user_id = ?1 AND us.subscription_id = ?2
             "#,
             user.id,
             id,
@@ -316,6 +300,8 @@ impl Database {
         }))
     }
 
+    #[tracing::instrument(skip_all, err)]
+    #[autometrics::autometrics]
     pub async fn subscription_get_by_guid(
         &self,
         user: &User,

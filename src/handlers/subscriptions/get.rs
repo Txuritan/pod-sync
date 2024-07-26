@@ -11,6 +11,8 @@ use crate::{
     Sync,
 };
 
+#[tracing::instrument(skip_all)]
+#[autometrics::autometrics]
 pub async fn get(
     State(sync): State<Sync>,
     session: Option<Session>,
@@ -54,7 +56,7 @@ mod tests {
     use url::Url;
 
     use crate::{
-        database::{Database, TestData},
+        database::{test::TestData, Database},
         handlers::test_app,
         models::{subscriptions::Subscription, ApiError},
     };
@@ -79,7 +81,7 @@ mod tests {
             .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
             .uri(format!(
                 "/v1/subscriptions/{}",
-                Database::TEST_SUBSCRIPTION_GUID
+                Database::SUBSCRIPTION_1_GUID
             ))
             .body(Body::empty())
             .unwrap();
@@ -95,8 +97,8 @@ mod tests {
         let body: Subscription = serde_json::from_slice(&body[..]).unwrap();
 
         let expected = Subscription {
-            feed_url: Url::parse(Database::TEST_SUBSCRIPTION_FEED).unwrap(),
-            guid: Database::TEST_SUBSCRIPTION_GUID,
+            feed_url: Url::parse(Database::SUBSCRIPTION_1_FEED).unwrap(),
+            guid: Database::SUBSCRIPTION_1_GUID,
             is_subscribed: true,
             subscription_changed: None,
             new_guid: None,
@@ -118,7 +120,7 @@ mod tests {
             .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
             .uri(format!(
                 "/v1/subscriptions/{}",
-                Database::TEST_SUBSCRIPTION_GUID
+                Database::SUBSCRIPTION_1_GUID
             ))
             .body(Body::empty())
             .unwrap();
@@ -148,7 +150,10 @@ mod tests {
             .method(Method::GET)
             .header(header::AUTHORIZATION, Database::test_token())
             .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-            .uri("/v1/subscriptions/8aed0901-a112-461e-b008-daeb409b60ba")
+            .uri(format!(
+                "/v1/subscriptions/{}",
+                Database::SUBSCRIPTION_MISSING_GUID
+            ))
             .body(Body::empty())
             .unwrap();
 

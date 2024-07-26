@@ -10,7 +10,7 @@ use tower_helmet::HelmetLayer;
 
 use crate::extractor::auth::Session;
 
-static STYLE: &str = include_str!("../../public/style.css");
+static STYLE: &str = include_str!("../../../public/style.css");
 
 pub struct Base {
     pub css: &'static str,

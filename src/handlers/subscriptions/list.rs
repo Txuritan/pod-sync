@@ -18,6 +18,8 @@ pub struct ListParams {
     pub per_page: Option<i64>,
 }
 
+#[tracing::instrument(skip_all)]
+#[autometrics::autometrics]
 pub async fn list(
     State(sync): State<Sync>,
     session: Option<Session>,
@@ -75,9 +77,12 @@ mod tests {
     use url::Url;
 
     use crate::{
-        database::{Database, TestData},
+        database::{test::TestData, Database},
         handlers::test_app,
-        models::{subscriptions::{Subscription, Subscriptions}, ApiError},
+        models::{
+            subscriptions::{Subscription, Subscriptions},
+            ApiError,
+        },
     };
 
     async fn setup_app(args: TestData) -> Router {
@@ -118,17 +123,15 @@ mod tests {
             per_page: 50,
             next: None,
             previous: None,
-            subscriptions: vec![
-                Subscription {
-                    feed_url: Url::parse(Database::TEST_SUBSCRIPTION_FEED).unwrap(),
-                    guid: Database::TEST_SUBSCRIPTION_GUID,
-                    is_subscribed: true,
-                    subscription_changed: None,
-                    new_guid: None,
-                    guid_changed: None,
-                    deleted: None,
-                },
-            ],
+            subscriptions: vec![Subscription {
+                feed_url: Url::parse(Database::SUBSCRIPTION_1_FEED).unwrap(),
+                guid: Database::SUBSCRIPTION_1_GUID,
+                is_subscribed: true,
+                subscription_changed: None,
+                new_guid: None,
+                guid_changed: None,
+                deleted: None,
+            }],
         };
 
         assert_eq!(expected, body);

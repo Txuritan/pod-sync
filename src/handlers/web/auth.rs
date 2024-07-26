@@ -12,11 +12,9 @@ use validator::{Validate as _, ValidationErrors};
 
 use crate::{
     extractor::auth::Session,
-    web::{Base, Template},
+    handlers::web::{Base, Template},
     Sync,
 };
-
-pub static SESSION: &str = "pod-sync-session";
 
 #[derive(askama::Template)]
 #[template(path = "auth/register.html")]
@@ -76,7 +74,9 @@ pub async fn post_register(
                 .into_response();
         }
         Ok(None) => {}
-        Err(_) => {
+        Err(err) => {
+            tracing::error!(err = ?err, "Failed to get user by username");
+
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Template(Register::new(session, None)),
@@ -90,6 +90,8 @@ pub async fn post_register(
         .user_create(&form.username, &form.email, &form.password)
         .await
     {
+        tracing::error!(err = ?err, "Failed to create user");
+
         return (
             StatusCode::INTERNAL_SERVER_ERROR,
             Template(Register::new(session, None)),
@@ -131,9 +133,9 @@ pub struct LoginForm {
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn post_login(
+    State(sync): State<Sync>,
     jar: PrivateCookieJar,
     session: Option<Session>,
-    State(sync): State<Sync>,
     Form(form): Form<LoginForm>,
 ) -> Response {
     if let Err(errors) = form.validate() {
@@ -147,11 +149,11 @@ pub async fn post_login(
     let user = match sync.db.user_get_by_username(&form.username).await {
         Ok(Some(user)) => user,
         Ok(None) => {
-            tracing::error!("user does not exist");
-
             return (StatusCode::BAD_REQUEST, Template(Login::new(session, None))).into_response();
         }
-        Err(_) => {
+        Err(err) => {
+            tracing::error!(err = ?err, "Failed to get user by username");
+
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Template(Login::new(session, None)),
@@ -162,7 +164,9 @@ pub async fn post_login(
 
     let (token, expires) = match sync.db.session_crate(&user).await {
         Ok(pair) => pair,
-        Err(_) => {
+        Err(err) => {
+            tracing::error!(err = ?err, "Failed to create user session");
+
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Template(Login::new(session, None)),
@@ -171,7 +175,7 @@ pub async fn post_login(
         }
     };
 
-    let mut cookie = Cookie::new(SESSION, token);
+    let mut cookie = Cookie::new(sync.cfg.session_name.clone(), token);
     cookie.set_http_only(true);
     cookie.set_path("/");
     cookie.set_same_site(SameSite::Strict);
@@ -182,8 +186,11 @@ pub async fn post_login(
 
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
-pub async fn get_logout(jar: PrivateCookieJar) -> Response {
-    let Some(session) = jar.get(SESSION) else {
+pub async fn get_logout(
+    State(sync): State<Sync>,
+    jar: PrivateCookieJar,
+) -> Response {
+    let Some(session) = jar.get(&sync.cfg.session_name) else {
         return Redirect::to("/").into_response();
     };
 

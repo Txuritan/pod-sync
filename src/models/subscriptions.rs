@@ -36,7 +36,7 @@ impl Subscriptions {
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct NewSubscription {
     pub feed_url: Url,
     pub guid: Uuid,
@@ -44,19 +44,19 @@ pub struct NewSubscription {
     pub subscription_changed: OffsetDateTime,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct FailedSubscription {
     pub feed_url: Url,
     pub message: String,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct NewSubscriptions {
     pub success: Vec<NewSubscription>,
     pub failure: Vec<FailedSubscription>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct SubscriptionUpdate {
     pub new_feed_url: Url,
     pub guid: Uuid,
@@ -65,19 +65,19 @@ pub struct SubscriptionUpdate {
 
 pub type FeedArray = Vec<Feed>;
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct Feed {
     pub feed_url: Url,
     pub guid: Option<Uuid>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct DeletionReceived {
     pub deletion_id: i64,
     pub message: String,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum DeletionStatus {
     Success,
@@ -85,7 +85,7 @@ pub enum DeletionStatus {
     Failure,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 pub struct Deletion {
     pub deletion_id: i64,
     pub status: DeletionStatus,

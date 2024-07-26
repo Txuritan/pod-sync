@@ -48,7 +48,12 @@ impl Database {
         let token = BASE64.encode(&bytes);
 
         sqlx::query!(
-            "INSERT INTO user_sessions (user_id, token, expires ) VALUES ( ?, ?, ? )",
+            r#"
+                INSERT INTO
+                    user_sessions (user_id, token, expires )
+                VALUES
+                    ( ?, ?, ? )
+            "#,
             user.id,
             token,
             expires
@@ -64,7 +69,16 @@ impl Database {
     pub async fn session_get_by_token(&self, token: &str) -> anyhow::Result<Option<Session>> {
         sqlx::query_as!(
             OptionalSession,
-            "SELECT u.id, u.username, u.email, u.password_hash, us.expires FROM user_sessions us LEFT JOIN users u ON us.user_id = u.id WHERE us.token = ? LIMIT 1",
+            r#"
+                SELECT
+                    u.id, u.username, u.email, u.password_hash, us.expires
+                FROM
+                    user_sessions us
+                LEFT JOIN users u ON us.user_id = u.id
+                WHERE
+                    us.token = ?
+                LIMIT 1
+            "#,
             token
         )
         .fetch_optional(&self.pool)

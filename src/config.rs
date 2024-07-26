@@ -14,6 +14,10 @@ fn default_private_address() -> SocketAddr {
     SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 3001))
 }
 
+fn default_session_name() -> String {
+    "pod-sync-session".to_string()
+}
+
 fn default_key() -> String {
     let mut key = [0; 64];
 
@@ -28,6 +32,8 @@ pub struct Config {
     pub public_address: SocketAddr,
     #[serde(rename = "private-address", default = "default_private_address")]
     pub private_address: SocketAddr,
+    #[serde(rename = "session-name", default = "default_session_name")]
+    pub session_name: String,
     #[serde(rename = "cookie-key", default = "default_key")]
     pub cookie_key: String,
     #[serde(rename = "session-key", default = "default_key")]
@@ -39,6 +45,7 @@ impl Default for Config {
         Self {
             public_address: default_public_address(),
             private_address: default_private_address(),
+            session_name: default_session_name(),
             cookie_key: default_key(),
             session_key: default_key(),
         }
@@ -72,6 +79,7 @@ impl Config {
         Ok(Self {
             public_address: default_public_address(),
             private_address: default_private_address(),
+            session_name: default_session_name(),
             cookie_key: "kt/ucnJy8CKBrldCeUF36mWGdVk3E6IN36YMs9EVyX8Jg3I3jhEqs3oWOErG00XNJy5UBgNWBZajiblFyt8nOA==".to_string(),
             session_key: "rkEdTWIld9OiEFXsH7VpPkWMwnyaHCWe5zNZgjQ5w1+9vuIuDDT0IqJ1kEDkjQO6LnTi77RePn+zCPsUpqS31Q==".to_string(),
         })

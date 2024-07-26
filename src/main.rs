@@ -2,23 +2,17 @@ mod extractor;
 mod handlers;
 mod models;
 mod tasks;
-mod web;
 
 mod config;
 mod database;
 
 use std::{sync::Arc, time::Duration};
 
-use axum::{
-    extract::{FromRef, Request},
-    http::Uri,
-    Router, ServiceExt as _,
-};
+use axum::{extract::FromRef, Router};
 use axum_extra::extract::cookie::Key;
 use axum_prometheus::PrometheusMetricLayer;
 use metrics_exporter_prometheus::PrometheusHandle;
 use tokio::net::TcpListener;
-use tower::Layer as _;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 use tracing_subscriber::prelude::*;
 
@@ -71,18 +65,14 @@ async fn start_public_server(
 ) -> anyhow::Result<()> {
     let addr = state.cfg.public_address;
 
-    let middleware = tower::util::MapRequestLayer::new(rewrite_request_uri);
-
     let app = Router::new()
         .merge(handlers::app())
-        .merge(web::app())
         .with_state(state.clone())
         .layer((
             prometheus_layer,
             TraceLayer::new_for_http(),
             TimeoutLayer::new(Duration::from_secs(10)),
         ));
-    let app = middleware.layer(app);
 
     let deletion_handle = Task::spawn(tasks::deletion);
     let identification_handle = Task::spawn(tasks::identification);
@@ -143,31 +133,4 @@ async fn shutdown_signal() {
     }
 
     tracing::info!("signal received, starting graceful shutdown");
-}
-
-// rewrite a path from `/example.json` to `/example/.json` as axum/matchit cant match extensions
-// TODO: remove this when https://github.com/ibraheemdev/matchit/issues/17 and https://github.com/tokio-rs/axum/pull/2645 are fixed
-fn rewrite_request_uri<B>(req: Request<B>) -> Request<B> {
-    let (mut parts, t) = req.into_parts();
-
-    let mut uri = parts.uri.clone().into_parts();
-    if let Some(paq) = uri.path_and_query.clone() {
-        let mut path = paq.path().to_string();
-        if path.ends_with(".json") {
-            path = format!("{}/.json", path.trim_end_matches(".json"));
-        }
-
-        if let Some(query) = paq.query() {
-            uri.path_and_query = Some(
-                format!("{}?{}", path, query)
-                    .parse()
-                    .expect("failed to parse path and query"),
-            );
-        } else {
-            uri.path_and_query = Some(path.parse().expect("failed to parse path and query"));
-        }
-    }
-    parts.uri = Uri::from_parts(uri).expect("failed to rewrite uri");
-
-    Request::from_parts(parts, t)
 }

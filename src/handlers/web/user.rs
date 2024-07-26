@@ -6,7 +6,7 @@ use axum::{
 
 use crate::{
     extractor::auth::Session,
-    web::{Base, Template},
+    handlers::web::{Base, Template},
     Sync,
 };
 
