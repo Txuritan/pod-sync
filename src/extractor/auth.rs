@@ -20,7 +20,7 @@ pub enum SessionRejection {
 
 impl IntoResponse for SessionRejection {
     fn into_response(self) -> axum::response::Response {
-        tracing::error!(err = %self, "failed to authenticate request");
+        tracing::error!(err = ?self, "failed to authenticate request");
 
         match self {
             SessionRejection::MissingHeader => StatusCode::UNAUTHORIZED,

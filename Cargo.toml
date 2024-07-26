@@ -29,7 +29,7 @@ sqlx = { version = "=0.7.4", features = ["runtime-tokio-native-tls", "sqlite", "
 thiserror = "=1.0.63"
 time = { version = "=0.3.36", features = ["formatting", "local-offset", "parsing", "macros", "serde", "std"] }
 tokio = { version = "=1.39.1", features = ["rt-multi-thread", "macros", "signal"] }
-toml = "=0.8.15"
+toml = "=0.8.16"
 tower = "=0.4.13"
 tower-helmet = "=0.3.0"
 tower-http = { version = "=0.5.2", features = ["metrics", "timeout", "trace"] }
@@ -46,7 +46,9 @@ vergen-git2 = "=1.0.0"
 vergen-gitcl = "=1.0.0"
 
 [dev-dependencies]
+http-body-util = "=0.1.2"
 mime = "=0.3.17"
+serde_json = "=1.0.120"
 
 [workspace]
 resolver = "2"

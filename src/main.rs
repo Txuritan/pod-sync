@@ -6,7 +6,6 @@ mod web;
 
 mod config;
 mod database;
-mod error;
 
 use std::{sync::Arc, time::Duration};
 
@@ -23,7 +22,7 @@ use tower::Layer as _;
 use tower_http::{timeout::TimeoutLayer, trace::TraceLayer};
 use tracing_subscriber::prelude::*;
 
-use crate::{config::Config, database::Database, error::Result, tasks::Task};
+use crate::{config::Config, database::Database, tasks::Task};
 
 #[derive(Clone)]
 struct Sync {
@@ -39,7 +38,7 @@ impl FromRef<Sync> for Key {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer().without_time())
         .init();
@@ -69,7 +68,7 @@ async fn main() -> Result<()> {
 async fn start_public_server(
     state: Sync,
     prometheus_layer: PrometheusMetricLayer<'static>,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     let addr = state.cfg.public_address;
 
     let middleware = tower::util::MapRequestLayer::new(rewrite_request_uri);
@@ -102,7 +101,7 @@ async fn start_public_server(
     Ok(())
 }
 
-async fn start_private_server(state: Sync, metric_handle: PrometheusHandle) -> Result<()> {
+async fn start_private_server(state: Sync, metric_handle: PrometheusHandle) -> anyhow::Result<()> {
     use axum::routing::get;
 
     use std::future::ready;

@@ -8,10 +8,7 @@ use axum::{
 use axum_extra::response::{Css, Html};
 use tower_helmet::HelmetLayer;
 
-use crate::{
-    error::{Error, Result},
-    extractor::auth::Session,
-};
+use crate::extractor::auth::Session;
 
 static STYLE: &str = include_str!("../../public/style.css");
 
@@ -33,10 +30,12 @@ pub struct Template<T: askama::Template>(pub T);
 
 impl<T: askama::Template> IntoResponse for Template<T> {
     fn into_response(self) -> axum::response::Response {
-        askama::Template::render(&self.0)
-            .map_err(Error::from)
-            .map(Html)
-            .into_response()
+        if let Ok(template) = askama::Template::render(&self.0) {
+            return Html(template).into_response();
+        }
+
+        // TODO: better fallback page
+        "failed to render template".into_response()
     }
 }
 
@@ -54,8 +53,8 @@ pub fn app() -> axum::Router<crate::Sync> {
         ))
 }
 
-async fn get_style() -> Result<Response> {
-    Ok(Css(STYLE).into_response())
+async fn get_style() -> Response {
+    Css(STYLE).into_response()
 }
 
 #[derive(askama::Template)]
@@ -72,6 +71,6 @@ impl Home {
     }
 }
 
-async fn get_index(session: Option<Session>) -> Result<Response> {
-    Ok(Template(Home::new(session)).into_response())
+async fn get_index(session: Option<Session>) -> Response {
+    Template(Home::new(session)).into_response()
 }

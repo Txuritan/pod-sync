@@ -3,10 +3,7 @@ use argon2::{
 };
 use rand::rngs::OsRng;
 
-use crate::{
-    database::Database,
-    error::{Error, Result},
-};
+use crate::database::Database;
 
 #[derive(sqlx::FromRow)]
 pub struct User {
@@ -35,7 +32,12 @@ impl User {
 impl Database {
     #[tracing::instrument(skip_all, err)]
     #[autometrics::autometrics]
-    pub async fn user_create(&self, username: &str, email: &str, password: &str) -> Result<i64> {
+    pub async fn user_create(
+        &self,
+        username: &str,
+        email: &str,
+        password: &str,
+    ) -> anyhow::Result<i64> {
         struct Wrapper {
             id: i64,
         }
@@ -62,7 +64,7 @@ impl Database {
 
     #[tracing::instrument(skip_all, err)]
     #[autometrics::autometrics]
-    pub async fn user_get_by_id(&self, id: i64) -> Result<Option<User>> {
+    pub async fn user_get_by_id(&self, id: i64) -> anyhow::Result<Option<User>> {
         sqlx::query_as!(
             User,
             "SELECT id, username, email, password_hash FROM users WHERE id = ? LIMIT 1",
@@ -70,12 +72,12 @@ impl Database {
         )
         .fetch_optional(&self.pool)
         .await
-        .map_err(Error::from)
+        .map_err(anyhow::Error::from)
     }
 
     #[tracing::instrument(skip_all, err)]
     #[autometrics::autometrics]
-    pub async fn user_get_by_username(&self, username: &str) -> Result<Option<User>> {
+    pub async fn user_get_by_username(&self, username: &str) -> anyhow::Result<Option<User>> {
         sqlx::query_as!(
             User,
             "SELECT id, username, email, password_hash FROM users WHERE username = ? LIMIT 1",
@@ -83,6 +85,6 @@ impl Database {
         )
         .fetch_optional(&self.pool)
         .await
-        .map_err(Error::from)
+        .map_err(anyhow::Error::from)
     }
 }

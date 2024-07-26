@@ -4,7 +4,6 @@ use time::OffsetDateTime;
 
 use crate::{
     database::{user::User, Database},
-    error::{Error, Result},
     extractor::auth::Session,
 };
 
@@ -40,7 +39,7 @@ impl OptionalSession {
 impl Database {
     #[tracing::instrument(skip_all, err)]
     #[autometrics::autometrics]
-    pub async fn session_crate(&self, user: &User) -> Result<(String, OffsetDateTime)> {
+    pub async fn session_crate(&self, user: &User) -> anyhow::Result<(String, OffsetDateTime)> {
         let now = OffsetDateTime::now_utc();
         let expires = now + time::Duration::days(7 * 3);
 
@@ -62,7 +61,7 @@ impl Database {
 
     #[tracing::instrument(skip_all, err)]
     #[autometrics::autometrics]
-    pub async fn session_get_by_token(&self, token: &str) -> Result<Option<Session>> {
+    pub async fn session_get_by_token(&self, token: &str) -> anyhow::Result<Option<Session>> {
         sqlx::query_as!(
             OptionalSession,
             "SELECT u.id, u.username, u.email, u.password_hash, us.expires FROM user_sessions us LEFT JOIN users u ON us.user_id = u.id WHERE us.token = ? LIMIT 1",
@@ -70,7 +69,7 @@ impl Database {
         )
         .fetch_optional(&self.pool)
         .await
-        .map_err(Error::from)
+        .map_err(anyhow::Error::from)
         .map(|ok| ok.and_then(OptionalSession::into_session))
     }
 }

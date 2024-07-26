@@ -55,7 +55,7 @@ pub async fn list(
         Ok(Some(subscriptions)) => Either2::E1(Json(subscriptions)),
         Ok(None) => Either2::E1(Json(Subscriptions::empty())),
         Err(err) => {
-            tracing::error!(err = %err, "failed to retrieve user subscriptions");
+            tracing::error!(err = ?err, "Failed to retrieve user subscriptions");
 
             Either2::E1(Json(Subscriptions::empty()))
         }
@@ -64,24 +64,20 @@ pub async fn list(
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use axum::{
         body::Body,
         http::{header, Method, Request, StatusCode},
         routing::get,
         Router,
     };
-    use axum_extra::extract::cookie::Key;
-    use headers::{authorization::{Credentials as _, Bearer}, Authorization};
+    use http_body_util::BodyExt as _;
     use tower::ServiceExt as _;
+    use url::Url;
 
     use crate::{
-        config::Config,
         database::{Database, TestData},
-        error::Result,
         handlers::test_app,
-        Sync,
+        models::{subscriptions::{Subscription, Subscriptions}, ApiError},
     };
 
     async fn setup_app(args: TestData) -> Router {
@@ -94,16 +90,13 @@ mod tests {
 
     #[tokio::test]
     async fn ok() {
-        tracing_subscriber::fmt().init();
+        let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
         let app = setup_app(TestData::UserData).await;
 
         let request = Request::builder()
             .method(Method::GET)
-            .header(
-                header::AUTHORIZATION,
-                Authorization::<Bearer>::bearer(Database::TEST_TOKEN).unwrap().0.encode(),
-            )
+            .header(header::AUTHORIZATION, Database::test_token())
             .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
             .uri("/v1/subscriptions")
             .body(Body::empty())
@@ -112,10 +105,39 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+
+        assert!(!body.is_empty());
+
+        let body: Subscriptions = serde_json::from_slice(&body[..]).unwrap();
+
+        let expected = Subscriptions {
+            total: 1,
+            page: 1,
+            per_page: 50,
+            next: None,
+            previous: None,
+            subscriptions: vec![
+                Subscription {
+                    feed_url: Url::parse(Database::TEST_SUBSCRIPTION_FEED).unwrap(),
+                    guid: Database::TEST_SUBSCRIPTION_GUID,
+                    is_subscribed: true,
+                    subscription_changed: None,
+                    new_guid: None,
+                    guid_changed: None,
+                    deleted: None,
+                },
+            ],
+        };
+
+        assert_eq!(expected, body);
     }
 
     #[tokio::test]
     async fn unauthorized() {
+        let _ = tracing_subscriber::fmt().with_test_writer().try_init();
+
         let app = setup_app(TestData::UserData).await;
 
         let request = Request::builder()
@@ -128,5 +150,13 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+
+        assert!(!body.is_empty());
+
+        let body: ApiError = serde_json::from_slice(&body[..]).unwrap();
+
+        assert_eq!(ApiError::unauthorized(), body);
     }
 }

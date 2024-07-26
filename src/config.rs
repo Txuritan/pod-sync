@@ -6,8 +6,6 @@ use std::{
 use data_encoding::BASE64;
 use rand::RngCore as _;
 
-use crate::error::{Error, Result};
-
 fn default_public_address() -> SocketAddr {
     SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 3000))
 }
@@ -48,7 +46,7 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Self> {
+    pub fn load() -> anyhow::Result<Self> {
         let path = PathBuf::from("pod-sync.toml");
 
         if !path.exists() {
@@ -70,7 +68,7 @@ impl Config {
     }
 
     #[cfg(test)]
-    pub fn load_test() -> Result<Self> {
+    pub fn load_test() -> anyhow::Result<Self> {
         Ok(Self {
             public_address: default_public_address(),
             private_address: default_private_address(),
@@ -79,9 +77,9 @@ impl Config {
         })
     }
 
-    pub fn cookie_key(&self) -> Result<Vec<u8>> {
+    pub fn cookie_key(&self) -> anyhow::Result<Vec<u8>> {
         BASE64
             .decode(self.cookie_key.as_bytes())
-            .map_err(Error::from)
+            .map_err(anyhow::Error::from)
     }
 }

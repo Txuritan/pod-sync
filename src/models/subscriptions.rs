@@ -2,7 +2,7 @@ use time::OffsetDateTime;
 use url::Url;
 use uuid::Uuid;
 
-#[derive(serde::Serialize)]
+#[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Subscription {
     pub feed_url: Url,
     pub guid: Uuid,
@@ -13,7 +13,7 @@ pub struct Subscription {
     pub deleted: Option<OffsetDateTime>,
 }
 
-#[derive(serde::Serialize)]
+#[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Subscriptions {
     pub total: i64,
     pub page: i64,

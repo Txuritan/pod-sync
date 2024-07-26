@@ -5,7 +5,6 @@ use axum::{
 };
 
 use crate::{
-    error::Result,
     extractor::auth::Session,
     web::{Base, Template},
     Sync,
@@ -25,16 +24,16 @@ impl Account {
     }
 }
 
-#[tracing::instrument(skip_all, err)]
+#[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn account(
     State(_sync): State<Sync>,
     session: Session,
     Path(username): Path<String>,
-) -> Result<Response> {
+) -> Response {
     if username != session.user.username {
-        return Ok((StatusCode::UNAUTHORIZED).into_response());
+        return (StatusCode::UNAUTHORIZED).into_response();
     }
 
-    Ok((StatusCode::OK, Template(Account::new(Some(session)))).into_response())
+    (StatusCode::OK, Template(Account::new(Some(session)))).into_response()
 }

@@ -11,7 +11,6 @@ use axum_extra::extract::{
 use validator::{Validate as _, ValidationErrors};
 
 use crate::{
-    error::Result,
     extractor::auth::Session,
     web::{Base, Template},
     Sync,
@@ -33,10 +32,10 @@ impl Register {
     }
 }
 
-#[tracing::instrument(skip_all, err)]
+#[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
-pub async fn get_register(session: Option<Session>, State(_sync): State<Sync>) -> Result<Response> {
-    Ok(Template(Register::new(session, None)).into_response())
+pub async fn get_register(session: Option<Session>, State(_sync): State<Sync>) -> Response {
+    Template(Register::new(session, None)).into_response()
 }
 
 #[derive(Debug, validator::Validate, serde::Deserialize)]
@@ -49,41 +48,56 @@ pub struct RegisterForm {
     password: String,
 }
 
-#[tracing::instrument(skip_all, err)]
+#[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn post_register(
     session: Option<Session>,
     State(sync): State<Sync>,
     Form(form): Form<RegisterForm>,
-) -> Result<Response> {
+) -> Response {
     if let Err(errors) = form.validate() {
         tracing::error!("{}", errors);
-        return Ok((
+
+        return (
             StatusCode::BAD_REQUEST,
             Template(Register::new(session, Some(errors))),
         )
-            .into_response());
+            .into_response();
     }
 
-    if sync
+    match sync.db.user_get_by_username(&form.username).await {
+        Ok(Some(_)) => {
+            tracing::error!("user does exist");
+
+            return (
+                StatusCode::UNAUTHORIZED,
+                Template(Register::new(session, None)),
+            )
+                .into_response();
+        }
+        Ok(None) => {}
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Template(Register::new(session, None)),
+            )
+                .into_response()
+        }
+    };
+
+    if let Err(err) = sync
         .db
-        .user_get_by_username(&form.username)
-        .await?
-        .is_some()
+        .user_create(&form.username, &form.email, &form.password)
+        .await
     {
-        tracing::error!("user does exist");
-        return Ok((
-            StatusCode::UNAUTHORIZED,
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
             Template(Register::new(session, None)),
         )
-            .into_response());
-    }
+            .into_response();
+    };
 
-    sync.db
-        .user_create(&form.username, &form.email, &form.password)
-        .await?;
-
-    Ok(Redirect::to("/login").into_response())
+    Redirect::to("/login").into_response()
 }
 
 #[derive(askama::Template)]
@@ -100,10 +114,10 @@ impl Login {
     }
 }
 
-#[tracing::instrument(skip_all, err)]
+#[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
-pub async fn get_login(session: Option<Session>, State(_sync): State<Sync>) -> Result<Response> {
-    Ok(Template(Login::new(session, None)).into_response())
+pub async fn get_login(session: Option<Session>, State(_sync): State<Sync>) -> Response {
+    Template(Login::new(session, None)).into_response()
 }
 
 #[derive(Debug, validator::Validate, serde::Deserialize)]
@@ -114,28 +128,48 @@ pub struct LoginForm {
     password: String,
 }
 
-#[tracing::instrument(skip_all, err)]
+#[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn post_login(
     jar: PrivateCookieJar,
     session: Option<Session>,
     State(sync): State<Sync>,
     Form(form): Form<LoginForm>,
-) -> Result<Response> {
+) -> Response {
     if let Err(errors) = form.validate() {
-        return Ok((
+        return (
             StatusCode::BAD_REQUEST,
             Template(Login::new(session, Some(errors))),
         )
-            .into_response());
+            .into_response();
     }
 
-    let Some(user) = sync.db.user_get_by_username(&form.username).await? else {
-        tracing::error!("user does not exist");
-        return Ok((StatusCode::BAD_REQUEST, Template(Login::new(session, None))).into_response());
+    let user = match sync.db.user_get_by_username(&form.username).await {
+        Ok(Some(user)) => user,
+        Ok(None) => {
+            tracing::error!("user does not exist");
+
+            return (StatusCode::BAD_REQUEST, Template(Login::new(session, None))).into_response();
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Template(Login::new(session, None)),
+            )
+                .into_response();
+        }
     };
 
-    let (token, expires) = sync.db.session_crate(&user).await?;
+    let (token, expires) = match sync.db.session_crate(&user).await {
+        Ok(pair) => pair,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Template(Login::new(session, None)),
+            )
+                .into_response();
+        }
+    };
 
     let mut cookie = Cookie::new(SESSION, token);
     cookie.set_http_only(true);
@@ -143,15 +177,15 @@ pub async fn post_login(
     cookie.set_same_site(SameSite::Strict);
     cookie.set_expires(expires);
 
-    Ok((jar.add(cookie), Redirect::to("/")).into_response())
+    (jar.add(cookie), Redirect::to("/")).into_response()
 }
 
-#[tracing::instrument(skip_all, err)]
+#[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
-pub async fn get_logout(jar: PrivateCookieJar) -> Result<Response> {
+pub async fn get_logout(jar: PrivateCookieJar) -> Response {
     let Some(session) = jar.get(SESSION) else {
-        return Ok(Redirect::to("/").into_response());
+        return Redirect::to("/").into_response();
     };
 
-    Ok((jar.remove(session), Redirect::to("/")).into_response())
+    (jar.remove(session), Redirect::to("/")).into_response()
 }

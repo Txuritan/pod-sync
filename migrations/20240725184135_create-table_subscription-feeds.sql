@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS subscription_feeds (
     updated TIMESTAMP,
     deleted TIMESTAMP, -- TODO: add index
     PRIMARY KEY (subscription_id, feed),
-    FOREIGN KEY (subscription_id) REFERENCES subscription (id) ON UPDATE CASCADE ON DELETE CASCADE
+    FOREIGN KEY (subscription_id) REFERENCES subscriptions (id) ON UPDATE CASCADE ON DELETE CASCADE
 );

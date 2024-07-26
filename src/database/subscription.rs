@@ -1,10 +1,10 @@
+use anyhow::Context as _;
 use time::OffsetDateTime;
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
     database::{user::User, Database},
-    error::{Error, Result},
     models::subscriptions::{Subscription, Subscriptions},
 };
 
@@ -64,7 +64,10 @@ pub struct WrapperId {
 }
 
 impl Database {
-    async fn subscription_get_id_by_guid(&self, uuid: Uuid) -> Result<Option<RowSubscriptionGuid>> {
+    async fn subscription_get_id_by_guid(
+        &self,
+        uuid: Uuid,
+    ) -> anyhow::Result<Option<RowSubscriptionGuid>> {
         sqlx::query_as!(
             RowSubscriptionGuid,
             r#"
@@ -76,11 +79,15 @@ impl Database {
         )
         .fetch_optional(&self.pool)
         .await
-        .map_err(Error::from)
+        .map_err(anyhow::Error::from)
+        .context("Failed to run query: get subscriptions by guid")
     }
 
     // TODO: add since support so we dont have to process as much
-    async fn subscription_get_feeds(&self, id: SubscriptionId) -> Result<Vec<RowSubscriptionFeed>> {
+    async fn subscription_get_feeds(
+        &self,
+        id: SubscriptionId,
+    ) -> anyhow::Result<Vec<RowSubscriptionFeed>> {
         sqlx::query_as!(
             RowSubscriptionFeed,
             r#"
@@ -92,11 +99,15 @@ impl Database {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(Error::from)
+        .map_err(anyhow::Error::from)
+        .context("Failed to run query: get subscriptions feeds")
     }
 
     // TODO: add since support so we dont have to process as much
-    async fn subscription_get_guids(&self, id: SubscriptionId) -> Result<Vec<RowSubscriptionGuid>> {
+    async fn subscription_get_guids(
+        &self,
+        id: SubscriptionId,
+    ) -> anyhow::Result<Vec<RowSubscriptionGuid>> {
         sqlx::query_as!(
             RowSubscriptionGuid,
             r#"
@@ -108,7 +119,8 @@ impl Database {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(Error::from)
+        .map_err(anyhow::Error::from)
+        .context("Failed to run query: get subscriptions guids")
     }
 
     async fn subscriptions_fill_all(
@@ -117,11 +129,15 @@ impl Database {
         page: i64,
         per_page: i64,
         ids: Vec<WrapperId>,
-    ) -> Result<Option<Subscriptions>> {
+    ) -> anyhow::Result<Option<Subscriptions>> {
         let mut subscriptions = Vec::with_capacity(ids.len());
 
         for id in ids {
-            let Some(subscription) = self.subscription_get_by_id(user, id.id).await? else {
+            let subscription = self
+                .subscription_get_by_id(user, id.id)
+                .await
+                .context("Failed to fill out subscription")?;
+            let Some(subscription) = subscription else {
                 return Ok(None);
             };
 
@@ -143,7 +159,7 @@ impl Database {
         user: &User,
         page: Option<i64>,
         per_page: Option<i64>,
-    ) -> Result<Option<Subscriptions>> {
+    ) -> anyhow::Result<Option<Subscriptions>> {
         let mut page = page.unwrap_or(1);
         let mut per_page = per_page.unwrap_or(50);
 
@@ -174,7 +190,8 @@ impl Database {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(Error::from)?;
+        .map_err(anyhow::Error::from)
+        .context("Failed to run query: get user subscriptions")?;
 
         self.subscriptions_fill_all(user, page, per_page, ids).await
     }
@@ -185,7 +202,7 @@ impl Database {
         since: OffsetDateTime,
         page: Option<i64>,
         per_page: Option<i64>,
-    ) -> Result<Option<Subscriptions>> {
+    ) -> anyhow::Result<Option<Subscriptions>> {
         let mut page = page.unwrap_or(1);
         let mut per_page = per_page.unwrap_or(50);
 
@@ -217,7 +234,8 @@ impl Database {
         )
         .fetch_all(&self.pool)
         .await
-        .map_err(Error::from)?;
+        .map_err(anyhow::Error::from)
+        .context("Failed to run query: get user subscriptions since date")?;
 
         self.subscriptions_fill_all(user, page, per_page, ids).await
     }
@@ -226,7 +244,7 @@ impl Database {
         &self,
         user: &User,
         id: SubscriptionId,
-    ) -> Result<Option<Subscription>> {
+    ) -> anyhow::Result<Option<Subscription>> {
         let subscription = sqlx::query_as!(
             RowUserSubscription,
             r#"
@@ -240,19 +258,32 @@ impl Database {
         )
         .fetch_optional(&self.pool)
         .await
-        .map_err(Error::from)?;
+        .map_err(anyhow::Error::from)
+        .context("Failed to run query: get user subscriptions by id")?;
 
         let Some(subscription) = subscription else {
+            tracing::debug!("User subscriptions query returned None");
+
             return Ok(None);
         };
 
-        let mut feeds = self.subscription_get_feeds(id).await?;
-        let guids = self.subscription_get_guids(id).await?;
+        let mut feeds = self
+            .subscription_get_feeds(id)
+            .await
+            .context("Failed get subscription feeds")?;
+        let guids = self
+            .subscription_get_guids(id)
+            .await
+            .context("Failed get subscription guids")?;
 
         if feeds.is_empty() {
+            tracing::debug!("Subscription feeds query returned None");
+
             return Ok(None);
         }
         if guids.is_empty() {
+            tracing::debug!("Subscription guids query returned None");
+
             return Ok(None);
         }
 
@@ -267,7 +298,10 @@ impl Database {
         let guid = guid_row.guid;
 
         let new_guid_row = guids.last();
-        let new_guid = new_guid_row.map(|g| g.guid);
+        let mut new_guid = new_guid_row.map(|g| g.guid);
+        if new_guid == Some(guid) {
+            new_guid = None;
+        }
 
         let guid_changed = new_guid_row.and_then(|g| g.updated);
 
@@ -286,11 +320,17 @@ impl Database {
         &self,
         user: &User,
         uuid: Uuid,
-    ) -> Result<Option<Subscription>> {
-        let Some(row) = self.subscription_get_id_by_guid(uuid).await? else {
+    ) -> anyhow::Result<Option<Subscription>> {
+        let row = self
+            .subscription_get_id_by_guid(uuid)
+            .await
+            .context("Failed to get subscription id from its guid")?;
+        let Some(row) = row else {
             return Ok(None);
         };
 
-        self.subscription_get_by_id(user, row.subscription_id).await
+        self.subscription_get_by_id(user, row.subscription_id)
+            .await
+            .context("Failed to get subscription by its id")
     }
 }

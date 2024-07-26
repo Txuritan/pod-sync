@@ -6,7 +6,7 @@ use axum::{
 
 pub mod subscriptions;
 
-#[derive(serde::Serialize)]
+#[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ApiError {
     pub code: i64, // TODO: schema says string, examples say integer...
     pub message: String,
