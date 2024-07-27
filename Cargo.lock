@@ -1150,6 +1150,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "headers-accept"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "abac9ba15f15a44969425b5f334e3ed11b54e3b2b7289a7fe1850e5a4e7cac21"
+dependencies = [
+ "headers-core",
+ "http",
+ "mediatype",
+]
+
+[[package]]
 name = "headers-core"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1580,6 +1591,12 @@ dependencies = [
  "cfg-if",
  "digest",
 ]
+
+[[package]]
+name = "mediatype"
+version = "0.19.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8878cd8d1b3c8c8ae4b2ba0a36652b7cf192f618a599a7fbdfa25cffd4ea72dd"
 
 [[package]]
 name = "memchr"
@@ -2033,8 +2050,10 @@ dependencies = [
  "axum-prometheus",
  "data-encoding",
  "headers",
+ "headers-accept",
  "http-body-util",
  "lettre",
+ "mediatype",
  "metrics",
  "metrics-exporter-prometheus",
  "mime",
@@ -2042,6 +2061,7 @@ dependencies = [
  "oxide-auth-axum",
  "pin-project-lite",
  "pretty_assertions",
+ "quick-xml",
  "rand",
  "reqwest",
  "serde",
@@ -2161,6 +2181,16 @@ dependencies = [
  "wasi",
  "web-sys",
  "winapi",
+]
+
+[[package]]
+name = "quick-xml"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96a05e2e8efddfa51a84ca47cec303fac86c8541b686d37cac5efc0e094417bc"
+dependencies = [
+ "memchr",
+ "serde",
 ]
 
 [[package]]

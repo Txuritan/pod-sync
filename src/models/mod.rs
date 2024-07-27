@@ -1,10 +1,10 @@
+pub mod subscriptions;
+
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
-
-pub mod subscriptions;
 
 #[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ApiError {
