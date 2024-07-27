@@ -38,19 +38,16 @@ pub async fn status(
 #[cfg(test)]
 mod tests {
     use axum::{
-        body::Body,
-        http::{header, Method, Request, StatusCode},
+        http::{Method, StatusCode},
         routing::get,
         Router,
     };
-    use http_body_util::BodyExt as _;
-    use pretty_assertions::assert_eq;
-    use tower::ServiceExt as _;
 
     use crate::{
         database::{test::TestData, Database},
         handlers::test_app,
         models::{subscriptions::Deletion, ApiError},
+        utils::test::TestBuilder,
     };
 
     async fn setup_app(args: TestData) -> Router {
@@ -66,28 +63,15 @@ mod tests {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
         let app = setup_app(TestData::UserData).await;
-
-        let request = Request::builder()
-            .method(Method::GET)
-            .header(header::AUTHORIZATION, Database::test_token())
-            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-            .uri(format!("/v1/deletions/{}", Database::DELETION_PENDING_ID))
-            .body(Body::empty())
-            .unwrap();
-
-        let response = app.oneshot(request).await.unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body = response.into_body().collect().await.unwrap().to_bytes();
-
-        assert!(!body.is_empty());
-
-        let body: Deletion = serde_json::from_slice(&body[..]).unwrap();
-
+        let url = format!("/v1/deletions/{}", Database::DELETION_PENDING_ID);
         let expected = Deletion::pending(Database::DELETION_PENDING_ID);
 
-        assert_eq!(expected, body);
+        TestBuilder::new(app, url, expected)
+            .method(Method::GET)
+            .authorization(true)
+            .status(StatusCode::OK)
+            .run()
+            .await;
     }
 
     #[tokio::test]
@@ -95,28 +79,15 @@ mod tests {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
         let app = setup_app(TestData::UserData).await;
-
-        let request = Request::builder()
-            .method(Method::GET)
-            .header(header::AUTHORIZATION, Database::test_token())
-            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-            .uri(format!("/v1/deletions/{}", Database::DELETION_SUCCESS_ID))
-            .body(Body::empty())
-            .unwrap();
-
-        let response = app.oneshot(request).await.unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body = response.into_body().collect().await.unwrap().to_bytes();
-
-        assert!(!body.is_empty());
-
-        let body: Deletion = serde_json::from_slice(&body[..]).unwrap();
-
+        let url = format!("/v1/deletions/{}", Database::DELETION_SUCCESS_ID);
         let expected = Deletion::success(Database::DELETION_SUCCESS_ID);
 
-        assert_eq!(expected, body);
+        TestBuilder::new(app, url, expected)
+            .method(Method::GET)
+            .authorization(true)
+            .status(StatusCode::OK)
+            .run()
+            .await;
     }
 
     #[tokio::test]
@@ -124,28 +95,15 @@ mod tests {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
         let app = setup_app(TestData::UserData).await;
-
-        let request = Request::builder()
-            .method(Method::GET)
-            .header(header::AUTHORIZATION, Database::test_token())
-            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-            .uri(format!("/v1/deletions/{}", Database::DELETION_FAILURE_ID))
-            .body(Body::empty())
-            .unwrap();
-
-        let response = app.oneshot(request).await.unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body = response.into_body().collect().await.unwrap().to_bytes();
-
-        assert!(!body.is_empty());
-
-        let body: Deletion = serde_json::from_slice(&body[..]).unwrap();
-
+        let url = format!("/v1/deletions/{}", Database::DELETION_FAILURE_ID);
         let expected = Deletion::failure(Database::DELETION_FAILURE_ID);
 
-        assert_eq!(expected, body);
+        TestBuilder::new(app, url, expected)
+            .method(Method::GET)
+            .authorization(true)
+            .status(StatusCode::OK)
+            .run()
+            .await;
     }
 
     #[tokio::test]
@@ -153,25 +111,14 @@ mod tests {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
         let app = setup_app(TestData::UserData).await;
+        let url = format!("/v1/deletions/{}", Database::DELETION_PENDING_ID);
+        let expected = ApiError::unauthorized();
 
-        let request = Request::builder()
+        TestBuilder::new(app, url, expected)
             .method(Method::GET)
-            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-            .uri(format!("/v1/deletions/{}", Database::DELETION_PENDING_ID))
-            .body(Body::empty())
-            .unwrap();
-
-        let response = app.oneshot(request).await.unwrap();
-
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-
-        let body = response.into_body().collect().await.unwrap().to_bytes();
-
-        assert!(!body.is_empty());
-
-        let body: ApiError = serde_json::from_slice(&body[..]).unwrap();
-
-        assert_eq!(ApiError::unauthorized(), body);
+            .status(StatusCode::UNAUTHORIZED)
+            .run()
+            .await;
     }
 
     #[tokio::test]
@@ -179,25 +126,14 @@ mod tests {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
         let app = setup_app(TestData::UserData).await;
+        let url = format!("/v1/deletions/{}", Database::DELETION_MISSING_ID);
+        let expected = ApiError::not_found();
 
-        let request = Request::builder()
+        TestBuilder::new(app, url, expected)
             .method(Method::GET)
-            .header(header::AUTHORIZATION, Database::test_token())
-            .header(header::CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
-            .uri(format!("/v1/deletions/{}", Database::DELETION_MISSING_ID))
-            .body(Body::empty())
-            .unwrap();
-
-        let response = app.oneshot(request).await.unwrap();
-
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
-
-        let body = response.into_body().collect().await.unwrap().to_bytes();
-
-        assert!(!body.is_empty());
-
-        let body: ApiError = serde_json::from_slice(&body[..]).unwrap();
-
-        assert_eq!(ApiError::not_found(), body);
+            .authorization(true)
+            .status(StatusCode::NOT_FOUND)
+            .run()
+            .await;
     }
 }
