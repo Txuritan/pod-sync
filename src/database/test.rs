@@ -1,4 +1,4 @@
-use crate::database::Database;
+use crate::{database::Database, models::subscriptions::DeletionStatus};
 
 #[derive(Clone, Copy)]
 pub enum TestData {
@@ -14,6 +14,11 @@ impl Database {
 
     pub const SUBSCRIPTION_MISSING_GUID: uuid::Uuid =
         uuid::uuid!("d78dfb54-7c24-5b30-a127-122bf249f25a");
+
+    pub const DELETION_PENDING_ID: i64 = 1;
+    pub const DELETION_SUCCESS_ID: i64 = 2;
+    pub const DELETION_FAILURE_ID: i64 = 3;
+    pub const DELETION_MISSING_ID: i64 = 16;
 
     pub async fn new_test(args: TestData) -> anyhow::Result<Self> {
         let pool = sqlx::SqlitePool::connect("sqlite::memory:").await?;
@@ -51,6 +56,45 @@ impl Database {
             Self::subscription_1(&pool).await?;
             Self::subscription_2(&pool, now).await?;
             Self::subscription_3(&pool, now).await?;
+
+            sqlx::query!(
+                r#"--sql
+                    INSERT INTO task_deletions(id, user_id, subscription_id, status)
+                    VALUES (?, ?, ?, ?)
+                "#,
+                Self::DELETION_PENDING_ID,
+                Self::USER_ID,
+                Self::SUBSCRIPTION_1_ID,
+                DeletionStatus::Pending,
+            )
+            .execute(&pool)
+            .await?;
+
+            sqlx::query!(
+                r#"--sql
+                    INSERT INTO task_deletions(id, user_id, subscription_id, status)
+                    VALUES (?, ?, ?, ?)
+                "#,
+                Self::DELETION_SUCCESS_ID,
+                Self::USER_ID,
+                Self::SUBSCRIPTION_2_ID,
+                DeletionStatus::Success,
+            )
+            .execute(&pool)
+            .await?;
+
+            sqlx::query!(
+                r#"--sql
+                    INSERT INTO task_deletions(id, user_id, subscription_id, status)
+                    VALUES (?, ?, ?, ?)
+                "#,
+                Self::DELETION_FAILURE_ID,
+                Self::USER_ID,
+                Self::SUBSCRIPTION_3_ID,
+                DeletionStatus::Failure,
+            )
+            .execute(&pool)
+            .await?;
         }
 
         Ok(Self { pool })
@@ -154,7 +198,7 @@ impl Database {
     pub const SUBSCRIPTION_3_GUID_OLD: uuid::Uuid =
         uuid::uuid!("cbfab27c-5529-5fe2-a7e1-607bdb128145");
     pub const SUBSCRIPTION_3_GUID_NEW: uuid::Uuid =
-        uuid::uuid!("d78dfb54-7c24-5b30-a127-122bf249f25a");
+        uuid::uuid!("8056e44f-978e-44b3-b34a-e99c79b6d891");
 
     async fn subscription_3(
         pool: &sqlx::sqlite::SqlitePool,

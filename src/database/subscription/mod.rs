@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, sqlx::Type)]
 #[sqlx(transparent)]
-pub struct SubscriptionId(i64);
+pub struct SubscriptionId(pub i64);
 
 impl From<i64> for SubscriptionId {
     fn from(value: i64) -> Self {
@@ -16,7 +16,7 @@ impl From<i64> for SubscriptionId {
 
 #[derive(Debug, Clone, Copy, sqlx::Type)]
 #[sqlx(transparent)]
-pub struct UserSubscriptionId(i64);
+pub struct UserSubscriptionId(pub i64);
 
 impl From<i64> for UserSubscriptionId {
     fn from(value: i64) -> Self {

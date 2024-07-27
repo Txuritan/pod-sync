@@ -1,5 +1,7 @@
-pub mod session;
 pub mod subscription;
+pub mod tasks;
+
+pub mod session;
 #[cfg(test)]
 pub mod test;
 pub mod user;

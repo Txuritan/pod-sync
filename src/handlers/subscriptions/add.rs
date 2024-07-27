@@ -4,7 +4,7 @@ use axum_extra::either::Either3;
 use crate::{
     extractor::auth::Session,
     models::{
-        subscriptions::{FeedArray, NewSubscriptions},
+        subscriptions::{AddSubscriptions, NewSubscriptions},
         Unauthorized, Validation,
     },
     Sync,
@@ -13,16 +13,23 @@ use crate::{
 pub async fn add(
     State(sync): State<Sync>,
     session: Option<Session>,
-    Json(feeds): Json<FeedArray>,
+    Json(add): Json<AddSubscriptions>,
 ) -> Either3<Json<NewSubscriptions>, Unauthorized, Validation> {
-    let Some(session) = session else {
-        return Either3::E2(Unauthorized);
-    };
-    if !session.validate() {
-        return Either3::E2(Unauthorized);
+    // let Some(session) = session else {
+    //     return Either3::E2(Unauthorized);
+    // };
+    // if !session.validate() {
+    //     return Either3::E2(Unauthorized);
+    // }
+
+    for feed in add.subscriptions {
+        tracing::info!(url = %feed.feed_url, "Feed");
     }
 
-    todo!()
+    Either3::E1(Json(NewSubscriptions {
+        success: vec![],
+        failure: vec![],
+    }))
 }
 
 #[cfg(test)]

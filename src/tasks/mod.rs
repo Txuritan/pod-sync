@@ -1,3 +1,6 @@
+pub mod deletion;
+pub mod identification;
+
 use std::{
     future::Future,
     pin::Pin,
@@ -7,9 +10,6 @@ use std::{
     },
     task::{Context, Poll},
 };
-
-pub mod deletion;
-pub mod identification;
 
 use tokio::task::{self, JoinHandle};
 

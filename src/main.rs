@@ -2,6 +2,7 @@ mod extractor;
 mod handlers;
 mod models;
 mod tasks;
+mod utils;
 
 mod config;
 mod database;
@@ -82,6 +83,8 @@ async fn start_public_server(
     axum::serve(listener, app.into_make_service())
         .with_graceful_shutdown(shutdown_signal())
         .await?;
+
+    tracing::info!("waiting for tasks to finish");
 
     deletion_handle.await.expect("async task panicked");
     identification_handle.await.expect("async task panicked");

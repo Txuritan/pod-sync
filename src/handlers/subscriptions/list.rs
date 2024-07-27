@@ -1,7 +1,4 @@
-use axum::{
-    extract::{Query, State},
-    Json,
-};
+use axum::extract::{Query, State};
 use axum_extra::either::Either as Either2;
 use time::OffsetDateTime;
 
@@ -24,7 +21,7 @@ pub async fn list(
     State(sync): State<Sync>,
     session: Option<Session>,
     Query(params): Query<ListParams>,
-) -> Either2<Json<Subscriptions>, Unauthorized> {
+) -> Either2<Subscriptions, Unauthorized> {
     let Some(session) = session else {
         tracing::info!("no session");
         return Either2::E2(Unauthorized);
@@ -54,12 +51,12 @@ pub async fn list(
     };
 
     match subscriptions {
-        Ok(Some(subscriptions)) => Either2::E1(Json(subscriptions)),
-        Ok(None) => Either2::E1(Json(Subscriptions::empty())),
+        Ok(Some(subscriptions)) => Either2::E1(subscriptions),
+        Ok(None) => Either2::E1(Subscriptions::empty()),
         Err(err) => {
             tracing::error!(err = ?err, "Failed to retrieve user subscriptions");
 
-            Either2::E1(Json(Subscriptions::empty()))
+            Either2::E1(Subscriptions::empty())
         }
     }
 }
@@ -73,6 +70,7 @@ mod tests {
         Router,
     };
     use http_body_util::BodyExt as _;
+    use pretty_assertions::assert_eq;
     use tower::ServiceExt as _;
     use url::Url;
 
@@ -118,20 +116,40 @@ mod tests {
         let body: Subscriptions = serde_json::from_slice(&body[..]).unwrap();
 
         let expected = Subscriptions {
-            total: 1,
+            total: 3,
             page: 1,
             per_page: 50,
             next: None,
             previous: None,
-            subscriptions: vec![Subscription {
-                feed_url: Url::parse(Database::SUBSCRIPTION_1_FEED).unwrap(),
-                guid: Database::SUBSCRIPTION_1_GUID,
-                is_subscribed: true,
-                subscription_changed: None,
-                new_guid: None,
-                guid_changed: None,
-                deleted: None,
-            }],
+            subscriptions: vec![
+                Subscription {
+                    feed_url: Url::parse(Database::SUBSCRIPTION_3_FEED).unwrap(),
+                    guid: Database::SUBSCRIPTION_3_GUID_OLD,
+                    is_subscribed: true,
+                    subscription_changed: None,
+                    new_guid: Some(Database::SUBSCRIPTION_3_GUID_NEW),
+                    guid_changed: None,
+                    deleted: None,
+                },
+                Subscription {
+                    feed_url: Url::parse(Database::SUBSCRIPTION_1_FEED).unwrap(),
+                    guid: Database::SUBSCRIPTION_1_GUID,
+                    is_subscribed: true,
+                    subscription_changed: None,
+                    new_guid: None,
+                    guid_changed: None,
+                    deleted: None,
+                },
+                Subscription {
+                    feed_url: Url::parse(Database::SUBSCRIPTION_2_FEED_NEW).unwrap(),
+                    guid: Database::SUBSCRIPTION_2_GUID,
+                    is_subscribed: true,
+                    subscription_changed: None,
+                    new_guid: None,
+                    guid_changed: None,
+                    deleted: None,
+                },
+            ],
         };
 
         assert_eq!(expected, body);

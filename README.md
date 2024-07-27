@@ -15,6 +15,6 @@ An open source Open Podcast API server.
     - [ ] `/v1/subscriptions/{guid}`
       - [X] `GET`
       - [ ] `PATCH`
-      - [ ] `DELETE`
+      - [X] `DELETE`
     - [ ] `/v1/deletions/{id}`
-      - [ ] `GET`
+      - [X] `GET`

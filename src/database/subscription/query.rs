@@ -18,13 +18,13 @@ use crate::{
 impl Database {
     #[tracing::instrument(skip_all, err)]
     #[autometrics::autometrics]
-    async fn subscription_get_id_by_guid(
+    pub async fn subscription_get_id_by_guid(
         &self,
         uuid: Uuid,
     ) -> anyhow::Result<Option<RowSubscriptionGuid>> {
         sqlx::query_as!(
             RowSubscriptionGuid,
-            r#"
+            r#"--sql
                 SELECT
                     subscription_id, guid as "guid: Uuid", created, updated, deleted
                 FROM
@@ -49,13 +49,14 @@ impl Database {
     ) -> anyhow::Result<Vec<RowSubscriptionFeed>> {
         sqlx::query_as!(
             RowSubscriptionFeed,
-            r#"
+            r#"--sql
                 SELECT
                     subscription_id, feed, created, updated, deleted
                 FROM
                     subscription_feeds
                 WHERE
                     subscription_id = ?1
+                ORDER BY created ASC
             "#,
             id,
         )
@@ -74,13 +75,14 @@ impl Database {
     ) -> anyhow::Result<Vec<RowSubscriptionGuid>> {
         sqlx::query_as!(
             RowSubscriptionGuid,
-            r#"
+            r#"--sql
                 SELECT
                     subscription_id, guid as "guid: Uuid", created, updated, deleted
                 FROM
                     subscription_guids
                 WHERE
                     subscription_id = ?1
+                ORDER BY created ASC
             "#,
             id,
         )
@@ -146,7 +148,7 @@ impl Database {
         // TODO: look into https://gist.github.com/ssokolow/262503 for paging
         let ids = sqlx::query_as!(
             WrapperId,
-            r#"
+            r#"--sql
                 SELECT
                     s.id
                 FROM
@@ -194,7 +196,7 @@ impl Database {
         // TODO: look into https://gist.github.com/ssokolow/262503 for paging
         let ids = sqlx::query_as!(
             WrapperId,
-            r#"
+            r#"--sql
                 SELECT
                     s.id
                 FROM
@@ -228,7 +230,7 @@ impl Database {
     ) -> anyhow::Result<Option<Subscription>> {
         let subscription = sqlx::query_as!(
             RowUserSubscription,
-            r#"
+            r#"--sql
                 SELECT
                     us.user_id, us.subscription_id, us.created, us.updated, us.deleted
                 FROM

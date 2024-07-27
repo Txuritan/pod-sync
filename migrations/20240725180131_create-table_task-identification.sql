@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS task_identification (
+CREATE TABLE IF NOT EXISTS task_identifications (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     subscription_id INTEGER NOT NULL UNIQUE,
     created TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),

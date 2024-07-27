@@ -81,7 +81,7 @@ pub async fn post_register(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Template(Register::new(session, None)),
             )
-                .into_response()
+                .into_response();
         }
     };
 
@@ -186,10 +186,7 @@ pub async fn post_login(
 
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
-pub async fn get_logout(
-    State(sync): State<Sync>,
-    jar: PrivateCookieJar,
-) -> Response {
+pub async fn get_logout(State(sync): State<Sync>, jar: PrivateCookieJar) -> Response {
     let Some(session) = jar.get(&sync.cfg.session_name) else {
         return Redirect::to("/").into_response();
     };

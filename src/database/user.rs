@@ -67,7 +67,12 @@ impl Database {
     pub async fn user_get_by_id(&self, id: i64) -> anyhow::Result<Option<User>> {
         sqlx::query_as!(
             User,
-            "SELECT id, username, email, password_hash FROM users WHERE id = ? LIMIT 1",
+            r#"--sql
+                SELECT id, username, email, password_hash
+                FROM users
+                WHERE id = ?
+                LIMIT 1
+            "#,
             id
         )
         .fetch_optional(&self.pool)
@@ -80,7 +85,12 @@ impl Database {
     pub async fn user_get_by_username(&self, username: &str) -> anyhow::Result<Option<User>> {
         sqlx::query_as!(
             User,
-            "SELECT id, username, email, password_hash FROM users WHERE username = ? LIMIT 1",
+            r#"--sql
+                SELECT id, username, email, password_hash
+                FROM users
+                WHERE username = ?
+                LIMIT 1
+            "#,
             username
         )
         .fetch_optional(&self.pool)

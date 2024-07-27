@@ -1,3 +1,8 @@
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use time::OffsetDateTime;
 use url::Url;
 use uuid::Uuid;
@@ -11,6 +16,12 @@ pub struct Subscription {
     pub new_guid: Option<Uuid>,
     pub guid_changed: Option<OffsetDateTime>,
     pub deleted: Option<OffsetDateTime>,
+}
+
+impl IntoResponse for Subscription {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self)).into_response()
+    }
 }
 
 #[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
@@ -33,6 +44,12 @@ impl Subscriptions {
             previous: None,
             subscriptions: vec![],
         }
+    }
+}
+
+impl IntoResponse for Subscriptions {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self)).into_response()
     }
 }
 
@@ -63,29 +80,49 @@ pub struct SubscriptionUpdate {
     pub is_subscribed: bool,
 }
 
-pub type FeedArray = Vec<Feed>;
+#[derive(Debug, serde::Deserialize)]
+pub struct AddSubscriptions {
+    pub subscriptions: Vec<Feed>,
+}
 
 #[derive(Debug, serde::Deserialize)]
 pub struct Feed {
-    pub feed_url: Url,
+    pub feed_url: String,
     pub guid: Option<Uuid>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct DeletionReceived {
     pub deletion_id: i64,
     pub message: String,
 }
 
-#[derive(Debug, serde::Serialize)]
+impl DeletionReceived {
+    pub fn new(deletion_id: i64) -> Self {
+        Self {
+            deletion_id,
+            message: "Deletion request was received and will be processed".to_string(),
+        }
+    }
+}
+
+impl IntoResponse for DeletionReceived {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, Json(self)).into_response()
+    }
+}
+
+#[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize, sqlx::Type)]
 #[serde(rename_all = "UPPERCASE")]
+#[sqlx(type_name = "deletion_status")]
+#[sqlx(rename_all = "lowercase")]
 pub enum DeletionStatus {
     Success,
     Pending,
     Failure,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Deletion {
     pub deletion_id: i64,
     pub status: DeletionStatus,
@@ -115,5 +152,11 @@ impl Deletion {
             status: DeletionStatus::Success,
             message: "The deletion process encountered an error and was rolled back".to_string(),
         }
+    }
+}
+
+impl IntoResponse for Deletion {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self)).into_response()
     }
 }

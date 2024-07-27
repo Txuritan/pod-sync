@@ -48,6 +48,7 @@ vergen-gitcl = "=1.0.0"
 [dev-dependencies]
 http-body-util = "=0.1.2"
 mime = "=0.3.17"
+pretty_assertions = "=1.4.0"
 serde_json = "=1.0.120"
 
 [workspace]

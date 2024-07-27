@@ -1,7 +1,4 @@
-use axum::{
-    extract::{Path, State},
-    Json,
-};
+use axum::extract::{Path, State};
 use axum_extra::either::Either5;
 use uuid::Uuid;
 
@@ -17,7 +14,7 @@ pub async fn get(
     State(sync): State<Sync>,
     session: Option<Session>,
     Path(guid): Path<Uuid>,
-) -> Either5<Json<Subscription>, Unauthorized, NotFound, Validation, Gone> {
+) -> Either5<Subscription, Unauthorized, NotFound, Validation, Gone> {
     let Some(session) = session else {
         return Either5::E2(Unauthorized);
     };
@@ -39,7 +36,7 @@ pub async fn get(
         return Either5::E5(Gone);
     }
 
-    Either5::E1(Json(subscription))
+    Either5::E1(subscription)
 }
 
 #[cfg(test)]
@@ -51,8 +48,8 @@ mod tests {
         Router,
     };
     use http_body_util::BodyExt as _;
+    use pretty_assertions::assert_eq;
     use tower::ServiceExt as _;
-    use tracing::Level;
     use url::Url;
 
     use crate::{

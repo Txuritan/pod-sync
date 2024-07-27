@@ -48,7 +48,7 @@ impl Database {
         let token = BASE64.encode(&bytes);
 
         sqlx::query!(
-            r#"
+            r#"--sql
                 INSERT INTO
                     user_sessions (user_id, token, expires )
                 VALUES
@@ -69,7 +69,7 @@ impl Database {
     pub async fn session_get_by_token(&self, token: &str) -> anyhow::Result<Option<Session>> {
         sqlx::query_as!(
             OptionalSession,
-            r#"
+            r#"--sql
                 SELECT
                     u.id, u.username, u.email, u.password_hash, us.expires
                 FROM
