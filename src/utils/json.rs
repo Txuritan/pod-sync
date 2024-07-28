@@ -40,12 +40,20 @@ where
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let bytes = match Bytes::from_request(req, state).await {
             Ok(bytes) => bytes,
-            Err(_) => return Err(JsonRejection),
+            Err(err) => {
+                tracing::error!(err = %err, "Failed to read body");
+
+                return Err(JsonRejection);
+            }
         };
 
         match serde_json::from_slice(&bytes) {
             Ok(value) => Ok(Self(value)),
-            Err(_) => Err(JsonRejection),
+            Err(err) => {
+                tracing::error!(err = %err, "Failed to deserialize JSON body");
+
+                Err(JsonRejection)
+            }
         }
     }
 }

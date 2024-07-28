@@ -107,7 +107,11 @@ where
     async fn from_request(mut req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let (encoding_type, media_type) = match get_types(&mut req).await {
             Ok(pair) => pair,
-            Err(_) => (EncodingType::Json, ContentType::json().0),
+            Err(err) => {
+                tracing::error!(err = ?err, "Failed to determine Accept and Content-Type media types");
+
+                (EncodingType::Json, ContentType::json().0)
+            }
         };
 
         if is_xml(&media_type) {

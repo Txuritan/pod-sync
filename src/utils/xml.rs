@@ -40,12 +40,20 @@ where
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let bytes = match Bytes::from_request(req, state).await {
             Ok(bytes) => bytes,
-            Err(_) => return Err(XmlRejection),
+            Err(err) => {
+                tracing::error!(err = %err, "Failed to read body");
+
+                return Err(XmlRejection);
+            }
         };
 
         match quick_xml::de::from_reader(&*bytes) {
             Ok(value) => Ok(Self(value)),
-            Err(_) => Err(XmlRejection),
+            Err(err) => {
+                tracing::error!(err = %err, "Failed to deserialize XML body");
+
+                Err(XmlRejection)
+            }
         }
     }
 }
