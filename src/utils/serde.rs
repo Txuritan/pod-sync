@@ -1,30 +1,44 @@
 use axum::{
     extract::{FromRequest, Request},
     response::{IntoResponse, Response},
-    Json, RequestExt,
+    RequestExt,
 };
 use axum_extra::TypedHeader;
 use headers_accept::Accept;
 use mediatype::{
-    names::{APPLICATION, CHARSET, JSON, TEXT, XML}, values::UTF_8, MediaType
+    names::{APPLICATION, CHARSET, JSON, TEXT, XML},
+    values::UTF_8,
+    MediaType, MediaTypeBuf,
 };
 
-use crate::utils::{content_type::ContentType, xml::Xml};
+use crate::utils::{
+    content_type::ContentType,
+    json::{Json, JsonRejection},
+    xml::{Xml, XmlRejection},
+};
 
 pub const APPLICATION_JSON: MediaType<'static> = MediaType::new(APPLICATION, JSON);
-pub const APPLICATION_XML_UTF8: MediaType<'static> = MediaType::from_parts(APPLICATION, XML, None, &[(CHARSET, UTF_8)]);
-pub const APPLICATION_XML: MediaType<'static> = MediaType::new(APPLICATION, XML); // TODO: restrict XML to UTF-8?
-pub const TEXT_XML_UTF8: MediaType<'static> = MediaType::from_parts(TEXT, XML, None, &[(CHARSET, UTF_8)]);
-pub const TEXT_XML: MediaType<'static> = MediaType::new(TEXT, XML); // TODO: restrict XML to UTF-8?
+pub const APPLICATION_XML_UTF8: MediaType<'static> =
+    MediaType::from_parts(APPLICATION, XML, None, &[(CHARSET, UTF_8)]);
+pub const APPLICATION_XML: MediaType<'static> = MediaType::new(APPLICATION, XML);
+pub const TEXT_XML_UTF8: MediaType<'static> =
+    MediaType::from_parts(TEXT, XML, None, &[(CHARSET, UTF_8)]);
+pub const TEXT_XML: MediaType<'static> = MediaType::new(TEXT, XML);
 
-const SUPPORTED_MEDIA_TYPES: &[MediaType<'static>] = &[APPLICATION_JSON, APPLICATION_XML_UTF8, TEXT_XML_UTF8, APPLICATION_XML, TEXT_XML];
+const SUPPORTED_MEDIA_TYPES: &[MediaType<'static>] = &[
+    APPLICATION_JSON,
+    APPLICATION_XML_UTF8,
+    TEXT_XML_UTF8,
+    APPLICATION_XML,
+    TEXT_XML,
+];
 
-fn is_json(typ: &MediaType) -> bool {
-    typ == &APPLICATION_JSON
+fn is_json(typ: &MediaTypeBuf) -> bool {
+    typ == APPLICATION_JSON
 }
 
-fn is_xml(typ: &MediaType) -> bool {
-    typ == &APPLICATION_XML_UTF8 || typ == &APPLICATION_XML || typ == &TEXT_XML_UTF8 || typ == &TEXT_XML
+fn is_xml(typ: &MediaTypeBuf) -> bool {
+    typ == APPLICATION_XML_UTF8 || typ == APPLICATION_XML || typ == TEXT_XML_UTF8 || typ == TEXT_XML
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -33,13 +47,49 @@ pub enum EncodingType {
     Xml,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum DeserializableRejection {}
+pub enum DeserializableRejection {
+    Json(JsonRejection),
+    Xml(XmlRejection),
+}
+
+impl From<JsonRejection> for DeserializableRejection {
+    fn from(v: JsonRejection) -> Self {
+        Self::Json(v)
+    }
+}
+
+impl From<XmlRejection> for DeserializableRejection {
+    fn from(v: XmlRejection) -> Self {
+        Self::Xml(v)
+    }
+}
 
 impl IntoResponse for DeserializableRejection {
     fn into_response(self) -> Response {
-        todo!()
+        match self {
+            DeserializableRejection::Json(rejection) => rejection.into_response(),
+            DeserializableRejection::Xml(rejection) => rejection.into_response(),
+        }
     }
+}
+
+async fn get_types(req: &mut Request) -> anyhow::Result<(EncodingType, MediaTypeBuf)> {
+    let TypedHeader(content_type) = req.extract_parts::<TypedHeader<ContentType>>().await?;
+
+    let encoding_type = match content_type.0 {
+        typ if is_json(&typ) => EncodingType::Json,
+        typ if is_xml(&typ) => EncodingType::Xml,
+        _ => EncodingType::Json,
+    };
+
+    let TypedHeader(header) = req.extract_parts::<TypedHeader<Accept>>().await?;
+
+    let media_type = header
+        .negotiate(SUPPORTED_MEDIA_TYPES)
+        .cloned()
+        .ok_or_else(|| anyhow::anyhow!("Failed to negotiate content type"))?;
+
+    Ok((encoding_type, media_type.into()))
 }
 
 pub struct Deserializable<T>(pub EncodingType, pub T)
@@ -55,42 +105,20 @@ where
     type Rejection = DeserializableRejection;
 
     async fn from_request(mut req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Ok(TypedHeader(content_type)) = req.extract_parts::<TypedHeader<ContentType>>().await else {
-            return todo!();
+        let (encoding_type, media_type) = match get_types(&mut req).await {
+            Ok(pair) => pair,
+            Err(_) => (EncodingType::Json, ContentType::json().0),
         };
 
-        let encoding_type = match content_type.0 {
-            typ if is_json(&typ.to_ref()) => EncodingType::Json,
-            typ if is_xml(&typ.to_ref()) => EncodingType::Xml,
-            _ => EncodingType::Json,
-        };
-
-        let Ok(TypedHeader(header)) = req.extract_parts::<TypedHeader<Accept>>().await else {
-            return todo!();
-        };
-
-        let Some(media_type) = header.negotiate(SUPPORTED_MEDIA_TYPES).cloned() else {
-            return todo!();
-        };
-
-        if is_json(&media_type) {
-            let t = match Json::<T>::from_request(req, state).await {
-                Ok(Json(t)) => t,
-                Err(_) => todo!(),
-            };
-
-            return Ok(Self(encoding_type, t));
-        }
         if is_xml(&media_type) {
-            let t = match Xml::<T>::from_request(req, state).await {
-                Ok(Xml(t)) => t,
-                Err(_) => todo!(),
-            };
+            let Xml(t) = Xml::<T>::from_request(req, state).await?;
 
             return Ok(Self(encoding_type, t));
         }
 
-        todo!()
+        let Json(t) = Json::<T>::from_request(req, state).await?;
+
+        Ok(Self(encoding_type, t))
     }
 }
 

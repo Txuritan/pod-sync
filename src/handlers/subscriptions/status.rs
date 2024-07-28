@@ -1,10 +1,10 @@
 use axum::extract::{Path, State};
-use axum_extra::either::Either4;
+use axum_extra::either::Either5;
 
 use crate::{
     database::tasks::DeletionId,
     extractor::auth::Session,
-    models::{subscriptions::Deletion, NotFound, Unauthorized, Validation},
+    models::{subscriptions::Deletion, InternalError, NotFound, Unauthorized, Validation},
     Sync,
 };
 
@@ -14,23 +14,23 @@ pub async fn status(
     State(sync): State<Sync>,
     session: Option<Session>,
     Path(id): Path<DeletionId>,
-) -> Either4<Deletion, Unauthorized, NotFound, Validation> {
+) -> Either5<Deletion, Unauthorized, NotFound, Validation, InternalError> {
     let Some(session) = session else {
-        return Either4::E2(Unauthorized);
+        return Either5::E2(Unauthorized);
     };
     if !session.validate() {
-        return Either4::E2(Unauthorized);
+        return Either5::E2(Unauthorized);
     }
 
     let status = sync.db.deletion_get(&session.user, id).await;
 
     match status {
-        Ok(Some(status)) => Either4::E1(status),
-        Ok(None) => Either4::E3(NotFound),
+        Ok(Some(status)) => Either5::E1(status),
+        Ok(None) => Either5::E3(NotFound),
         Err(err) => {
             tracing::error!(err = ?err, "Failed to get deletion task status");
 
-            Either4::E2(Unauthorized)
+            Either5::E5(InternalError)
         }
     }
 }

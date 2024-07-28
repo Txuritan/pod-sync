@@ -2048,6 +2048,7 @@ dependencies = [
  "axum-core",
  "axum-extra",
  "axum-prometheus",
+ "bytes",
  "data-encoding",
  "headers",
  "headers-accept",

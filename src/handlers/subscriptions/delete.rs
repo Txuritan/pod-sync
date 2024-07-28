@@ -1,10 +1,10 @@
 use axum::extract::{Path, State};
-use axum_extra::either::Either4;
+use axum_extra::either::Either5;
 use uuid::Uuid;
 
 use crate::{
     extractor::auth::Session,
-    models::{subscriptions::DeletionReceived, NotFound, Unauthorized, Validation},
+    models::{subscriptions::DeletionReceived, InternalError, NotFound, Unauthorized, Validation},
     Sync,
 };
 
@@ -14,23 +14,23 @@ pub async fn delete(
     State(sync): State<Sync>,
     session: Option<Session>,
     Path(guid): Path<Uuid>,
-) -> Either4<DeletionReceived, Unauthorized, NotFound, Validation> {
+) -> Either5<DeletionReceived, Unauthorized, NotFound, Validation, InternalError> {
     let Some(session) = session else {
-        return Either4::E2(Unauthorized);
+        return Either5::E2(Unauthorized);
     };
     if !session.validate() {
-        return Either4::E2(Unauthorized);
+        return Either5::E2(Unauthorized);
     }
 
     let id = sync.db.deletion_create(&session.user, guid).await;
 
     match id {
-        Ok(Some(id)) => Either4::E1(DeletionReceived::new(id)),
-        Ok(None) => Either4::E3(NotFound),
+        Ok(Some(id)) => Either5::E1(DeletionReceived::new(id)),
+        Ok(None) => Either5::E3(NotFound),
         Err(err) => {
             tracing::error!(err = ?err, "Failed to create deletion task");
 
-            Either4::E2(Unauthorized)
+            Either5::E5(InternalError)
         }
     }
 }

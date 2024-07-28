@@ -1,7 +1,4 @@
-use axum::{
-    extract::{Path, State},
-    Json,
-};
+use axum::extract::{Path, State};
 use axum_extra::either::Either4;
 use url::Url;
 use uuid::Uuid;
@@ -9,6 +6,7 @@ use uuid::Uuid;
 use crate::{
     extractor::auth::Session,
     models::{subscriptions::SubscriptionUpdate, NotFound, Unauthorized, Validation},
+    utils::json::Json,
     Sync,
 };
 
@@ -24,7 +22,7 @@ pub async fn update(
     session: Option<Session>,
     Path(guid): Path<Uuid>,
     Json(request): Json<UpdateBody>,
-) -> Either4<Json<SubscriptionUpdate>, Unauthorized, NotFound, Validation> {
+) -> Either4<SubscriptionUpdate, Unauthorized, NotFound, Validation> {
     let Some(session) = session else {
         return Either4::E2(Unauthorized);
     };

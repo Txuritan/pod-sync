@@ -1,4 +1,4 @@
-use axum::{extract::State, Json};
+use axum::extract::State;
 use axum_extra::either::Either3;
 
 use crate::{
@@ -7,6 +7,7 @@ use crate::{
         subscriptions::{AddSubscriptions, NewSubscriptions},
         Unauthorized, Validation,
     },
+    utils::json::Json,
     Sync,
 };
 
@@ -14,7 +15,7 @@ pub async fn add(
     State(sync): State<Sync>,
     session: Option<Session>,
     Json(add): Json<AddSubscriptions>,
-) -> Either3<Json<NewSubscriptions>, Unauthorized, Validation> {
+) -> Either3<NewSubscriptions, Unauthorized, Validation> {
     // let Some(session) = session else {
     //     return Either3::E2(Unauthorized);
     // };
@@ -26,10 +27,10 @@ pub async fn add(
         tracing::info!(url = %feed.feed_url, "Feed");
     }
 
-    Either3::E1(Json(NewSubscriptions {
+    Either3::E1(NewSubscriptions {
         success: vec![],
         failure: vec![],
-    }))
+    })
 }
 
 #[cfg(test)]

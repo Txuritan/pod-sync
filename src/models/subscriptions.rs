@@ -1,11 +1,12 @@
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use time::OffsetDateTime;
 use url::Url;
 use uuid::Uuid;
+
+use crate::utils::json::Json;
 
 #[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct Subscription {
@@ -73,11 +74,23 @@ pub struct NewSubscriptions {
     pub failure: Vec<FailedSubscription>,
 }
 
+impl IntoResponse for NewSubscriptions {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self)).into_response()
+    }
+}
+
 #[derive(Debug, serde::Serialize)]
 pub struct SubscriptionUpdate {
     pub new_feed_url: Url,
     pub guid: Uuid,
     pub is_subscribed: bool,
+}
+
+impl IntoResponse for SubscriptionUpdate {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self)).into_response()
+    }
 }
 
 #[derive(Debug, serde::Deserialize)]

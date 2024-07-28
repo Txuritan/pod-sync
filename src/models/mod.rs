@@ -3,8 +3,9 @@ pub mod subscriptions;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
+
+use crate::utils::json::Json;
 
 #[derive(Debug, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ApiError {
@@ -40,6 +41,13 @@ impl ApiError {
             message: "Subscription has been deleted".to_string(),
         }
     }
+
+    pub fn internal_error() -> Self {
+        Self {
+            code: 500,
+            message: "Internal Error".to_string(),
+        }
+    }
 }
 
 pub struct Unauthorized;
@@ -72,5 +80,17 @@ pub struct Gone;
 impl IntoResponse for Gone {
     fn into_response(self) -> Response {
         (StatusCode::GONE, Json(ApiError::gone())).into_response()
+    }
+}
+
+pub struct InternalError;
+
+impl IntoResponse for InternalError {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiError::internal_error()),
+        )
+            .into_response()
     }
 }

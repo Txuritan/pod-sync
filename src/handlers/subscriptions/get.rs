@@ -1,10 +1,12 @@
 use axum::extract::{Path, State};
-use axum_extra::either::Either5;
+use axum_extra::either::Either6;
 use uuid::Uuid;
 
 use crate::{
     extractor::auth::Session,
-    models::{subscriptions::Subscription, Gone, NotFound, Unauthorized, Validation},
+    models::{
+        subscriptions::Subscription, Gone, InternalError, NotFound, Unauthorized, Validation,
+    },
     Sync,
 };
 
@@ -14,29 +16,29 @@ pub async fn get(
     State(sync): State<Sync>,
     session: Option<Session>,
     Path(guid): Path<Uuid>,
-) -> Either5<Subscription, Unauthorized, NotFound, Validation, Gone> {
+) -> Either6<Subscription, Unauthorized, NotFound, Validation, Gone, InternalError> {
     let Some(session) = session else {
-        return Either5::E2(Unauthorized);
+        return Either6::E2(Unauthorized);
     };
     if !session.validate() {
-        return Either5::E2(Unauthorized);
+        return Either6::E2(Unauthorized);
     }
 
     let subscription = match sync.db.subscription_get_by_guid(&session.user, guid).await {
         Ok(Some(subscription)) => subscription,
-        Ok(None) => return Either5::E3(NotFound),
+        Ok(None) => return Either6::E3(NotFound),
         Err(err) => {
             tracing::error!(err = ?err, "Failed to retrieve user subscription");
 
-            return Either5::E2(Unauthorized);
+            return Either6::E6(InternalError);
         }
     };
 
     if subscription.deleted.is_some() {
-        return Either5::E5(Gone);
+        return Either6::E5(Gone);
     }
 
-    Either5::E1(subscription)
+    Either6::E1(subscription)
 }
 
 #[cfg(test)]

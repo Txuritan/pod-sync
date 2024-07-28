@@ -1,11 +1,26 @@
 use std::fmt;
 
 use axum::http::header;
-use headers::{Header, HeaderName, HeaderValue, Error};
-use mediatype::MediaTypeBuf;
+use headers::{Error, Header, HeaderName, HeaderValue};
+use mediatype::{
+    names::{APPLICATION, JSON, XML},
+    MediaTypeBuf,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ContentType(pub MediaTypeBuf);
+
+impl ContentType {
+    #[inline]
+    pub fn json() -> ContentType {
+        ContentType(MediaTypeBuf::new(APPLICATION, JSON))
+    }
+
+    #[inline]
+    pub fn xml() -> ContentType {
+        ContentType(MediaTypeBuf::new(APPLICATION, XML))
+    }
+}
 
 impl Header for ContentType {
     fn name() -> &'static HeaderName {

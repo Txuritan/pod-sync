@@ -53,23 +53,23 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load() -> anyhow::Result<Self> {
+    pub async fn load() -> anyhow::Result<Self> {
         let path = PathBuf::from("pod-sync.toml");
 
         if !path.exists() {
             let config = Self::default();
             let content = toml::to_string_pretty(&config)?;
 
-            std::fs::write(&path, content)?;
+            tokio::fs::write(&path, content).await?;
 
             return Ok(config);
         }
 
-        let content = std::fs::read_to_string(&path)?;
+        let content = tokio::fs::read_to_string(&path).await?;
         let config = toml::from_str(&content)?;
 
         let content = toml::to_string_pretty(&config)?;
-        std::fs::write(&path, content)?;
+        tokio::fs::write(&path, content).await?;
 
         Ok(config)
     }

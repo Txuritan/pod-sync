@@ -4,21 +4,21 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::TypedHeader;
-use bytes::Bytes;
+use bytes::{BufMut, Bytes, BytesMut};
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::utils::content_type::ContentType;
 
-static BAD_REQUEST: &str = r#"<?xml version="1.0" encoding="UTF-8" ?><error><code>400</code><message>Input failed to decode</message></error>"#;
-static INTERNAL_ERROR: &str = r#"<?xml version="1.0" encoding="UTF-8" ?><error><code>500</code><message>Internal error</message></error>"#;
+static BAD_REQUEST: &str = r#"{"code":400,"message":"Input failed to decode"}"#;
+static INTERNAL_ERROR: &str = r#"{"code":500,"message":"Internal error"}"#;
 
-pub struct XmlRejection;
+pub struct JsonRejection;
 
-impl IntoResponse for XmlRejection {
+impl IntoResponse for JsonRejection {
     fn into_response(self) -> Response {
         (
             StatusCode::BAD_REQUEST,
-            TypedHeader(ContentType::xml()),
+            TypedHeader(ContentType::json()),
             BAD_REQUEST,
         )
             .into_response()
@@ -27,53 +27,53 @@ impl IntoResponse for XmlRejection {
 
 #[derive(Debug, Clone, Copy, Default)]
 #[must_use]
-pub struct Xml<T>(pub T);
+pub struct Json<T>(pub T);
 
 #[async_trait::async_trait]
-impl<T, S> FromRequest<S> for Xml<T>
+impl<T, S> FromRequest<S> for Json<T>
 where
     T: DeserializeOwned,
     S: Send + Sync,
 {
-    type Rejection = XmlRejection;
+    type Rejection = JsonRejection;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let bytes = match Bytes::from_request(req, state).await {
             Ok(bytes) => bytes,
-            Err(_) => return Err(XmlRejection),
+            Err(_) => return Err(JsonRejection),
         };
 
-        match quick_xml::de::from_reader(&*bytes) {
+        match serde_json::from_slice(&bytes) {
             Ok(value) => Ok(Self(value)),
-            Err(_) => Err(XmlRejection),
+            Err(_) => Err(JsonRejection),
         }
     }
 }
 
-impl<T> From<T> for Xml<T> {
+impl<T> From<T> for Json<T> {
     fn from(inner: T) -> Self {
         Self(inner)
     }
 }
 
-impl<T> IntoResponse for Xml<T>
+impl<T> IntoResponse for Json<T>
 where
     T: Serialize,
 {
     fn into_response(self) -> Response {
-        let mut buf = String::with_capacity(128);
+        let mut buf = BytesMut::with_capacity(128).writer();
 
-        if let Err(err) = quick_xml::se::to_writer(&mut buf, &self.0) {
-            tracing::error!(err = %err, "Failed to encode XML response");
+        if let Err(err) = serde_json::to_writer(&mut buf, &self.0) {
+            tracing::error!(err = %err, "Failed to encode JSON response");
 
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                TypedHeader(ContentType::xml()),
+                TypedHeader(ContentType::json()),
                 INTERNAL_ERROR,
             )
                 .into_response();
         }
 
-        (TypedHeader(ContentType::xml()), buf).into_response()
+        (TypedHeader(ContentType::json()), buf.into_inner().freeze()).into_response()
     }
 }

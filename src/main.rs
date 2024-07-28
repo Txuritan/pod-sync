@@ -26,6 +26,21 @@ struct Sync {
     pub(crate) cfg: Arc<Config>,
 }
 
+impl Sync {
+    async fn new() -> anyhow::Result<Self> {
+        let config = Config::load().await?;
+        let config = Arc::new(config);
+
+        let db = Database::new().await?;
+
+        Ok(Self {
+            key: Key::from(&config.cookie_key()?),
+            db,
+            cfg: config.clone(),
+        })
+    }
+}
+
 impl FromRef<Sync> for Key {
     fn from_ref(input: &Sync) -> Self {
         input.key.clone()
@@ -38,15 +53,7 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer().without_time())
         .init();
 
-    let config = Arc::new(Config::load()?);
-
-    let db = Database::new().await?;
-
-    let state = Sync {
-        key: Key::from(&config.cookie_key()?),
-        db,
-        cfg: config.clone(),
-    };
+    let state = Sync::new().await?;
 
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
 

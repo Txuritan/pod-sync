@@ -1,10 +1,10 @@
 use axum::extract::{Query, State};
-use axum_extra::either::Either as Either2;
+use axum_extra::either::Either3;
 use time::OffsetDateTime;
 
 use crate::{
     extractor::auth::Session,
-    models::{subscriptions::Subscriptions, Unauthorized},
+    models::{subscriptions::Subscriptions, InternalError, Unauthorized},
     Sync,
 };
 
@@ -21,14 +21,14 @@ pub async fn list(
     State(sync): State<Sync>,
     session: Option<Session>,
     Query(params): Query<ListParams>,
-) -> Either2<Subscriptions, Unauthorized> {
+) -> Either3<Subscriptions, Unauthorized, InternalError> {
     let Some(session) = session else {
         tracing::info!("no session");
-        return Either2::E2(Unauthorized);
+        return Either3::E2(Unauthorized);
     };
     if !session.validate() {
         tracing::info!("session invalid");
-        return Either2::E2(Unauthorized);
+        return Either3::E2(Unauthorized);
     }
 
     let ListParams {
@@ -51,12 +51,12 @@ pub async fn list(
     };
 
     match subscriptions {
-        Ok(Some(subscriptions)) => Either2::E1(subscriptions),
-        Ok(None) => Either2::E1(Subscriptions::empty()),
+        Ok(Some(subscriptions)) => Either3::E1(subscriptions),
+        Ok(None) => Either3::E1(Subscriptions::empty()),
         Err(err) => {
             tracing::error!(err = ?err, "Failed to retrieve user subscriptions");
 
-            Either2::E1(Subscriptions::empty())
+            Either3::E3(InternalError)
         }
     }
 }
