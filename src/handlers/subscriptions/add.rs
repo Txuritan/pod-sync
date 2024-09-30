@@ -7,14 +7,14 @@ use crate::{
         subscriptions::{AddSubscriptions, NewSubscriptions},
         Unauthorized, Validation,
     },
-    utils::json::Json,
-    Sync,
+    utils::serde::Deserializable,
+    SyncState,
 };
 
 pub async fn add(
-    State(sync): State<Sync>,
+    State(sync): State<SyncState>,
     session: Option<Session>,
-    Json(add): Json<AddSubscriptions>,
+    Deserializable(encoding, add): Deserializable<AddSubscriptions>,
 ) -> Either3<NewSubscriptions, Unauthorized, Validation> {
     // let Some(session) = session else {
     //     return Either3::E2(Unauthorized);

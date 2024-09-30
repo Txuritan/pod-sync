@@ -6,7 +6,7 @@ pub mod status;
 pub mod update;
 
 #[rustfmt::skip]
-pub fn app() -> axum::Router<crate::Sync> {
+pub fn app() -> axum::Router<crate::SyncState> {
     use axum::routing::get as _get;
 
     axum::Router::new()

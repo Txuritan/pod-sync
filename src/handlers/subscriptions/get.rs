@@ -7,13 +7,13 @@ use crate::{
     models::{
         subscriptions::Subscription, Gone, InternalError, NotFound, Unauthorized, Validation,
     },
-    Sync,
+    SyncState,
 };
 
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn get(
-    State(sync): State<Sync>,
+    State(sync): State<SyncState>,
     session: Option<Session>,
     Path(guid): Path<Uuid>,
 ) -> Either6<Subscription, Unauthorized, NotFound, Validation, Gone, InternalError> {
@@ -51,25 +51,25 @@ mod tests {
     use url::Url;
 
     use crate::{
-        database::{test::TestData, Database},
+        database::Database,
         handlers::test_app,
         models::{subscriptions::Subscription, ApiError},
         utils::test::TestBuilder,
     };
 
-    async fn setup_app(args: TestData) -> Router {
-        test_app(args, |router| {
+    async fn setup_app(pool: sqlx::SqlitePool) -> Router {
+        test_app(pool, |router| {
             router.route("/v1/subscriptions/:guid", get(super::get))
         })
         .await
         .expect("failed to setup app")
     }
 
-    #[tokio::test]
-    async fn ok() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn ok(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/subscriptions/{}", Database::SUBSCRIPTION_1_GUID);
         let expected = Subscription {
             feed_url: Url::parse(Database::SUBSCRIPTION_1_FEED).unwrap(),
@@ -89,11 +89,11 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn unauthorized() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn unauthorized(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/subscriptions/{}", Database::SUBSCRIPTION_1_GUID);
         let expected = ApiError::unauthorized();
 
@@ -106,11 +106,11 @@ mod tests {
 
     // TODO: validation test
 
-    #[tokio::test]
-    async fn not_found() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn not_found(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/subscriptions/{}", Database::SUBSCRIPTION_MISSING_GUID);
         let expected = ApiError::not_found();
 

@@ -45,12 +45,12 @@ impl Session {
 }
 
 #[async_trait::async_trait]
-impl FromRequestParts<crate::Sync> for Session {
+impl FromRequestParts<crate::SyncState> for Session {
     type Rejection = SessionRejection;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &crate::Sync,
+        state: &crate::SyncState,
     ) -> Result<Self, Self::Rejection> {
         let header = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
             .await

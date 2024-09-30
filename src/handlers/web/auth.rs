@@ -13,7 +13,7 @@ use validator::{Validate as _, ValidationErrors};
 use crate::{
     extractor::auth::Session,
     handlers::web::{Base, Template},
-    Sync,
+    SyncState,
 };
 
 #[derive(askama::Template)]
@@ -32,7 +32,7 @@ impl Register {
 
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
-pub async fn get_register(session: Option<Session>, State(_sync): State<Sync>) -> Response {
+pub async fn get_register(session: Option<Session>, State(_sync): State<SyncState>) -> Response {
     Template(Register::new(session, None)).into_response()
 }
 
@@ -50,7 +50,7 @@ pub struct RegisterForm {
 #[autometrics::autometrics]
 pub async fn post_register(
     session: Option<Session>,
-    State(sync): State<Sync>,
+    State(sync): State<SyncState>,
     Form(form): Form<RegisterForm>,
 ) -> Response {
     if let Err(errors) = form.validate() {
@@ -118,7 +118,7 @@ impl Login {
 
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
-pub async fn get_login(session: Option<Session>, State(_sync): State<Sync>) -> Response {
+pub async fn get_login(session: Option<Session>, State(_sync): State<SyncState>) -> Response {
     Template(Login::new(session, None)).into_response()
 }
 
@@ -133,7 +133,7 @@ pub struct LoginForm {
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn post_login(
-    State(sync): State<Sync>,
+    State(sync): State<SyncState>,
     jar: PrivateCookieJar,
     session: Option<Session>,
     Form(form): Form<LoginForm>,
@@ -186,7 +186,7 @@ pub async fn post_login(
 
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
-pub async fn get_logout(State(sync): State<Sync>, jar: PrivateCookieJar) -> Response {
+pub async fn get_logout(State(sync): State<SyncState>, jar: PrivateCookieJar) -> Response {
     let Some(session) = jar.get(&sync.cfg.session_name) else {
         return Redirect::to("/").into_response();
     };

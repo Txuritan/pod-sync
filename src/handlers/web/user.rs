@@ -7,7 +7,7 @@ use axum::{
 use crate::{
     extractor::auth::Session,
     handlers::web::{Base, Template},
-    Sync,
+    SyncState,
 };
 
 #[derive(askama::Template)]
@@ -27,7 +27,7 @@ impl Account {
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn account(
-    State(_sync): State<Sync>,
+    State(_sync): State<SyncState>,
     session: Session,
     Path(username): Path<String>,
 ) -> Response {

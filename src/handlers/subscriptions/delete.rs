@@ -5,13 +5,13 @@ use uuid::Uuid;
 use crate::{
     extractor::auth::Session,
     models::{subscriptions::DeletionReceived, InternalError, NotFound, Unauthorized, Validation},
-    Sync,
+    SyncState,
 };
 
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn delete(
-    State(sync): State<Sync>,
+    State(sync): State<SyncState>,
     session: Option<Session>,
     Path(guid): Path<Uuid>,
 ) -> Either5<DeletionReceived, Unauthorized, NotFound, Validation, InternalError> {
@@ -44,25 +44,25 @@ mod tests {
     };
 
     use crate::{
-        database::{test::TestData, Database},
+        database::Database,
         handlers::test_app,
         models::{subscriptions::DeletionReceived, ApiError},
         utils::test::TestBuilder,
     };
 
-    async fn setup_app(args: TestData) -> Router {
-        test_app(args, |router| {
+    async fn setup_app(pool: sqlx::SqlitePool) -> Router {
+        test_app(pool, |router| {
             router.route("/v1/subscriptions/:guid", delete(super::delete))
         })
         .await
         .expect("failed to setup app")
     }
 
-    #[tokio::test]
-    async fn created() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn created(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/subscriptions/{}", Database::SUBSCRIPTION_1_GUID);
         let expected = DeletionReceived::new(4);
 
@@ -74,11 +74,11 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn unauthorized() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn unauthorized(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/subscriptions/{}", Database::SUBSCRIPTION_1_GUID);
         let expected = ApiError::unauthorized();
 
@@ -89,11 +89,11 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn not_found() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn not_found(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/subscriptions/{}", Database::SUBSCRIPTION_MISSING_GUID);
         let expected = ApiError::not_found();
 

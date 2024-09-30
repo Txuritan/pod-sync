@@ -5,7 +5,7 @@ use time::OffsetDateTime;
 use crate::{
     extractor::auth::Session,
     models::{subscriptions::Subscriptions, InternalError, Unauthorized},
-    Sync,
+    SyncState,
 };
 
 #[derive(serde::Deserialize)]
@@ -18,7 +18,7 @@ pub struct ListParams {
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn list(
-    State(sync): State<Sync>,
+    State(sync): State<SyncState>,
     session: Option<Session>,
     Query(params): Query<ListParams>,
 ) -> Either3<Subscriptions, Unauthorized, InternalError> {
@@ -71,7 +71,7 @@ mod tests {
     use url::Url;
 
     use crate::{
-        database::{test::TestData, Database},
+        database::Database,
         handlers::test_app,
         models::{
             subscriptions::{Subscription, Subscriptions},
@@ -80,19 +80,19 @@ mod tests {
         utils::test::TestBuilder,
     };
 
-    async fn setup_app(args: TestData) -> Router {
-        test_app(args, |router| {
+    async fn setup_app(pool: sqlx::SqlitePool) -> Router {
+        test_app(pool, |router| {
             router.route("/v1/subscriptions", get(super::list))
         })
         .await
         .expect("failed to setup app")
     }
 
-    #[tokio::test]
-    async fn ok() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn ok(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = "/v1/subscriptions";
         let expected = Subscriptions {
             total: 3,
@@ -139,11 +139,11 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn unauthorized() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn unauthorized(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = "/v1/subscriptions";
         let expected = ApiError::unauthorized();
 

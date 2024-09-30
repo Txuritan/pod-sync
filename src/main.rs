@@ -20,13 +20,13 @@ use tracing_subscriber::prelude::*;
 use crate::{config::Config, database::Database, tasks::Task};
 
 #[derive(Clone)]
-struct Sync {
+struct SyncState {
     key: Key,
     pub(crate) db: Database,
     pub(crate) cfg: Arc<Config>,
 }
 
-impl Sync {
+impl SyncState {
     async fn new() -> anyhow::Result<Self> {
         let config = Config::load().await?;
         let config = Arc::new(config);
@@ -39,10 +39,21 @@ impl Sync {
             cfg: config.clone(),
         })
     }
+
+    #[cfg(test)]
+    async fn new_test(pool: sqlx::SqlitePool) -> anyhow::Result<Self> {
+        let config = Arc::new(Config::load_test()?);
+
+        Ok(SyncState {
+            key: Key::from(&config.cookie_key()?),
+            db: Database::new_test(pool).await?,
+            cfg: config.clone(),
+        })
+    }
 }
 
-impl FromRef<Sync> for Key {
-    fn from_ref(input: &Sync) -> Self {
+impl FromRef<SyncState> for Key {
+    fn from_ref(input: &SyncState) -> Self {
         input.key.clone()
     }
 }
@@ -53,7 +64,7 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer().without_time())
         .init();
 
-    let state = Sync::new().await?;
+    let state = SyncState::new().await?;
 
     let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
 
@@ -68,14 +79,13 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn start_public_server(
-    state: Sync,
+    state: SyncState,
     prometheus_layer: PrometheusMetricLayer<'static>,
 ) -> anyhow::Result<()> {
     let addr = state.cfg.public_address;
 
     let app = Router::new()
-        .merge(handlers::app())
-        .with_state(state.clone())
+        .merge(handlers::app(state.clone()))
         .layer((
             prometheus_layer,
             TraceLayer::new_for_http(),
@@ -101,7 +111,7 @@ async fn start_public_server(
     Ok(())
 }
 
-async fn start_private_server(state: Sync, metric_handle: PrometheusHandle) -> anyhow::Result<()> {
+async fn start_private_server(state: SyncState, metric_handle: PrometheusHandle) -> anyhow::Result<()> {
     use axum::routing::get;
 
     use std::future::ready;

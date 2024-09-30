@@ -40,7 +40,7 @@ impl<T: askama::Template> IntoResponse for Template<T> {
 }
 
 #[rustfmt::skip]
-pub fn app() -> axum::Router<crate::Sync> {
+pub fn app() -> axum::Router<crate::SyncState> {
     axum::Router::new()
         .route("/public/style.css", get(get_style))
         .route("/", get(get_index))

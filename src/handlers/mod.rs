@@ -1,37 +1,27 @@
 mod subscriptions;
 mod web;
 
+use crate::SyncState;
+
 #[rustfmt::skip]
-pub fn app() -> axum::Router<crate::Sync> {
+pub fn app(state: SyncState) -> axum::Router {
     axum::Router::new()
         .merge(subscriptions::app())
         .merge(web::app())
+        .with_state(state.clone())
 }
 
 #[cfg(test)]
 pub async fn test_app<B>(
-    args: crate::database::test::TestData,
+    pool: sqlx::SqlitePool,
     builder: B,
 ) -> anyhow::Result<axum::Router>
 where
-    B: FnOnce(axum::Router<crate::Sync>) -> axum::Router<crate::Sync>,
+    B: FnOnce(axum::Router<SyncState>) -> axum::Router<SyncState>,
 {
-    use std::sync::Arc;
-
-    use axum_extra::extract::cookie::Key;
     use tower_http::trace::TraceLayer;
 
-    use crate::{config::Config, database::Database, Sync};
-
-    let config = Arc::new(Config::load_test()?);
-
-    let db = Database::new_test(args).await?;
-
-    let state = Sync {
-        key: Key::from(&config.cookie_key()?),
-        db,
-        cfg: config.clone(),
-    };
+    let state = SyncState::new_test(pool).await?;
 
     let router = builder(axum::Router::new())
         .with_state(state)

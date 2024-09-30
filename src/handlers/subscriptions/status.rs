@@ -5,13 +5,13 @@ use crate::{
     database::tasks::DeletionId,
     extractor::auth::Session,
     models::{subscriptions::Deletion, InternalError, NotFound, Unauthorized, Validation},
-    Sync,
+    SyncState,
 };
 
 #[tracing::instrument(skip_all)]
 #[autometrics::autometrics]
 pub async fn status(
-    State(sync): State<Sync>,
+    State(sync): State<SyncState>,
     session: Option<Session>,
     Path(id): Path<DeletionId>,
 ) -> Either5<Deletion, Unauthorized, NotFound, Validation, InternalError> {
@@ -44,25 +44,25 @@ mod tests {
     };
 
     use crate::{
-        database::{test::TestData, Database},
+        database::Database,
         handlers::test_app,
         models::{subscriptions::Deletion, ApiError},
         utils::test::TestBuilder,
     };
 
-    async fn setup_app(args: TestData) -> Router {
-        test_app(args, |router| {
+    async fn setup_app(pool: sqlx::SqlitePool) -> Router {
+        test_app(pool, |router| {
             router.route("/v1/deletions/:deletion_id", get(super::status))
         })
         .await
         .expect("failed to setup app")
     }
 
-    #[tokio::test]
-    async fn ok_pending() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn ok_pending(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/deletions/{}", Database::DELETION_PENDING_ID);
         let expected = Deletion::pending(Database::DELETION_PENDING_ID);
 
@@ -74,11 +74,11 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn ok_success() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn ok_success(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/deletions/{}", Database::DELETION_SUCCESS_ID);
         let expected = Deletion::success(Database::DELETION_SUCCESS_ID);
 
@@ -90,11 +90,11 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn ok_failure() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn ok_failure(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/deletions/{}", Database::DELETION_FAILURE_ID);
         let expected = Deletion::failure(Database::DELETION_FAILURE_ID);
 
@@ -106,11 +106,11 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn unauthorized() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn unauthorized(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/deletions/{}", Database::DELETION_PENDING_ID);
         let expected = ApiError::unauthorized();
 
@@ -121,11 +121,11 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn not_found() {
+    #[sqlx::test(fixtures("../../../fixtures/dummy.sql"))]
+    async fn not_found(pool: sqlx::SqlitePool) {
         let _ = tracing_subscriber::fmt().with_test_writer().try_init();
 
-        let app = setup_app(TestData::UserData).await;
+        let app = setup_app(pool).await;
         let url = format!("/v1/deletions/{}", Database::DELETION_MISSING_ID);
         let expected = ApiError::not_found();
 

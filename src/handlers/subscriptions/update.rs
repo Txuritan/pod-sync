@@ -6,8 +6,8 @@ use uuid::Uuid;
 use crate::{
     extractor::auth::Session,
     models::{subscriptions::SubscriptionUpdate, NotFound, Unauthorized, Validation},
-    utils::json::Json,
-    Sync,
+    utils::serde::Deserializable,
+    SyncState,
 };
 
 #[derive(serde::Deserialize)]
@@ -18,10 +18,10 @@ pub struct UpdateBody {
 }
 
 pub async fn update(
-    State(sync): State<Sync>,
+    State(sync): State<SyncState>,
     session: Option<Session>,
     Path(guid): Path<Uuid>,
-    Json(request): Json<UpdateBody>,
+    Deserializable(encoding, request): Deserializable<UpdateBody>,
 ) -> Either4<SubscriptionUpdate, Unauthorized, NotFound, Validation> {
     let Some(session) = session else {
         return Either4::E2(Unauthorized);
