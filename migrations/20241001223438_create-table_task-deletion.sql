@@ -1,0 +1,15 @@
+CREATE TABLE task_deletion (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+
+    user_id INTEGER NOT NULL,
+    subscription_id INTEGER NOT NULL,
+
+    status TEXT NOT NULL,
+
+    created TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
+    updated TIMESTAMP,
+    deleted TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES user (id) ON UPDATE CASCADE ON DELETE CASCADE
+    FOREIGN KEY (subscription_id) REFERENCES subscription (id) ON UPDATE CASCADE ON DELETE CASCADE
+);

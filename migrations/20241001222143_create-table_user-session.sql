@@ -1,0 +1,14 @@
+CREATE TABLE user_session (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+
+    user_id INTEGER NOT NULL,
+
+    token TEXT NOT NULL UNIQUE,
+    expires TIMESTAMP NOT NULL DEFAULT (DATETIME('now', '+7 days')),
+
+    created TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
+    updated TIMESTAMP,
+    deleted TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES user (id) ON UPDATE CASCADE ON DELETE CASCADE
+);

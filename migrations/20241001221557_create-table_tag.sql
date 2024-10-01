@@ -1,0 +1,10 @@
+CREATE TABLE tag (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+
+    kind TEXT NOT NULL,
+    name TEXT NOT NULL,
+
+    created TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
+    updated TIMESTAMP,
+    deleted TIMESTAMP
+);

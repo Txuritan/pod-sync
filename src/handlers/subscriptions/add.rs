@@ -16,12 +16,12 @@ pub async fn add(
     session: Option<Session>,
     Deserializable(encoding, add): Deserializable<AddSubscriptions>,
 ) -> Either3<NewSubscriptions, Unauthorized, Validation> {
-    // let Some(session) = session else {
-    //     return Either3::E2(Unauthorized);
-    // };
-    // if !session.validate() {
-    //     return Either3::E2(Unauthorized);
-    // }
+    let Some(session) = session else {
+        return Either3::E2(Unauthorized);
+    };
+    if !session.validate() {
+        return Either3::E2(Unauthorized);
+    }
 
     for feed in add.subscriptions {
         tracing::info!(url = %feed.feed_url, "Feed");

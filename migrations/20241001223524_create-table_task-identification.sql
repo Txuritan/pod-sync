@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS task_identification (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+
+    subscription_id INTEGER NOT NULL UNIQUE,
+
+    created TIMESTAMP NOT NULL DEFAULT (DATETIME('now')),
+    updated TIMESTAMP,
+    deleted TIMESTAMP.
+
+    FOREIGN KEY (subscription_id) REFERENCES subscription (id) ON UPDATE CASCADE ON DELETE CASCADE
+);

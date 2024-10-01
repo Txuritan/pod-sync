@@ -3,7 +3,7 @@ mod user;
 
 use axum::{
     response::{IntoResponse, Response},
-    routing::get,
+    routing,
 };
 use axum_extra::response::{Css, Html};
 use tower_helmet::HelmetLayer;
@@ -42,12 +42,12 @@ impl<T: askama::Template> IntoResponse for Template<T> {
 #[rustfmt::skip]
 pub fn app() -> axum::Router<crate::SyncState> {
     axum::Router::new()
-        .route("/public/style.css", get(get_style))
-        .route("/", get(get_index))
-        .route("/register", get(auth::get_register).post(auth::post_register))
-        .route("/login", get(auth::get_login).post(auth::post_login))
-        .route("/logout", get(auth::get_logout))
-        .route("/user/:username", get(user::account))
+        .route("/public/style.css", routing::get(get_style))
+        .route("/", routing::get(get_index))
+        .route("/register", routing::get(auth::get_register).post(auth::post_register))
+        .route("/login", routing::get(auth::get_login).post(auth::post_login))
+        .route("/logout", routing::get(auth::get_logout))
+        .route("/user/:username", routing::get(user::account))
         .layer((
             HelmetLayer::with_defaults(),
         ))

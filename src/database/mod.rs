@@ -1,6 +1,7 @@
 pub mod subscription;
 pub mod tasks;
 
+pub mod orm;
 pub mod session;
 pub mod user;
 

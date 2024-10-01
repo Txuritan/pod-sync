@@ -1,0 +1,86 @@
+<div id="container">
+    <div id="nav">
+      <nav class="flex gap-x-4 m-4 items-center">
+        <h1 class="text-lg font-mono font-bold">pod-sync</h1>
+        <input class="flex-1 border rounded px-2 py-1 max-w-96" placeholder="Search pod-sync..." />
+      </nav>
+    </div>
+  
+    <div id="featured" class="bg-zinc-100">
+      <section class="m-4">
+        <h2 class="text-xl font-bold">Featured</h2>
+  
+        <div class="scrollbar-thin flex overflow-x-auto py-2">
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+          <a class="mx-2 flex-shrink-0"><img class="h-32 rounded" src="https://placehold.co/512" /></a>
+        </div>
+      </section>
+    </div>
+  
+    <div id="recent" class="bg-zinc-50">
+      <section class="m-4">
+        <h2 class="text-xl font-bold mb-4">Recent Updated</h2>
+  
+        <div class="bg-zinc-100 border rounded divide-x-2">
+          <a href="#" class="flex m-2">
+            <img class="h-16 rounded" src="https://placehold.co/512" />
+            <div class="flex-1 flex flex-col"></div>
+          </a>
+        </div>
+      </section>
+    </div>
+  
+    <div id="discover" class="bg-zinc-50">
+      <section class="m-4">
+        <h2 class="text-xl font-bold">Discover</h2>
+      </section>
+    </div>
+  </div>
+  
+
+
+  @tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+#container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, min-content) 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    "nav nav"
+    "featured featured"
+    "recent discover";
+  min-height: 100vh;
+}
+
+#nav {
+  grid-area: nav;
+}
+
+#featured {
+  grid-area: featured;
+}
+
+#recent {
+  grid-area: recent;
+}
+
+#discover {
+  grid-area: discover;
+}
